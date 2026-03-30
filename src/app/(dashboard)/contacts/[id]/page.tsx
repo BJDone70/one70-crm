@@ -7,7 +7,6 @@ import AddActivityForm from '@/components/add-activity-form'
 import AddTaskForm from '@/components/add-task-form'
 import KeyNotes from '@/components/key-notes'
 import { ClickToCall, ClickToEmail, ClickToText } from '@/components/click-actions'
-import CopyEmailButton from '@/components/copy-email-button'
 import AiDraft from '@/components/ai-draft'
 import MeetingPrep from '@/components/ai-meeting-prep'
 import NoteProcessor from '@/components/ai-note-processor'
@@ -151,23 +150,20 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* Quick action bar — one-tap call, email, text */}
+      {/* Quick action bar — one-tap call, text (mobile/app only), LinkedIn always visible */}
       <div className="flex flex-wrap gap-2 mb-6">
         {contact.mobile_phone && (
-          <a href={`tel:${contact.mobile_phone}`} className="flex items-center gap-1.5 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
+          <a href={`tel:${contact.mobile_phone}`} className="flex md:hidden items-center gap-1.5 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
             📱 Call Mobile
           </a>
         )}
         {contact.phone && (
-          <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
+          <a href={`tel:${contact.phone}`} className="flex md:hidden items-center gap-1.5 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
             📞 Call Office
           </a>
         )}
-        {contact.email && (
-          <CopyEmailButton email={contact.email} />
-        )}
         {contact.mobile_phone && (
-          <a href={`sms:${contact.mobile_phone}`} className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
+          <a href={`sms:${contact.mobile_phone}`} className="flex md:hidden items-center gap-1.5 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
             💬 Text
           </a>
         )}
@@ -218,7 +214,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                 <div>
                   <span className="text-one70-mid">Office:</span>
                   <span className="ml-1 text-one70-dark">{contact.phone}</span>
-                  <div className="flex items-center gap-1 mt-0.5">
+                  <div className="flex md:hidden items-center gap-1 mt-0.5">
                     <ClickToCall value={contact.phone} contactId={id} orgId={contact.org_id} contactName={contactName} />
                     <ClickToText value={contact.phone} contactId={id} orgId={contact.org_id} contactName={contactName} />
                   </div>
@@ -228,7 +224,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                 <div>
                   <span className="text-one70-mid">Mobile:</span>
                   <span className="ml-1 text-one70-dark">{contact.mobile_phone}</span>
-                  <div className="flex items-center gap-1 mt-0.5">
+                  <div className="flex md:hidden items-center gap-1 mt-0.5">
                     <ClickToCall value={contact.mobile_phone} contactId={id} orgId={contact.org_id} contactName={contactName} />
                     <ClickToText value={contact.mobile_phone} contactId={id} orgId={contact.org_id} contactName={contactName} />
                   </div>

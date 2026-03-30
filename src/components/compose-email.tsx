@@ -1,8 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Send, X, Loader2, ChevronDown, ChevronUp, Paperclip, CheckCircle, Sparkles } from 'lucide-react'
+import { Send, X, Loader2, ChevronDown, ChevronUp, Paperclip, CheckCircle, Sparkles, RefreshCw } from 'lucide-react'
 import RecipientInput from '@/components/recipient-input'
+
+const AI_SEQUENCE_STEPS = [
+  { id: 'cold', label: 'Cold Open' },
+  { id: 'followUp1', label: 'Follow-up 1' },
+  { id: 'followUp2', label: 'Follow-up 2' },
+  { id: 'breakup', label: 'Break-up' },
+  { id: 'post_meeting', label: 'Post-Meeting' },
+  { id: 'referral', label: 'Referral Intro' },
+]
 
 interface Props {
   defaultTo?: string
@@ -25,7 +34,40 @@ export default function ComposeEmail({ defaultTo, defaultSubject, contactId, org
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
-  const [drafting, setDrafting] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiStep, setAiStep] = useState('cold')
+  const [aiError, setAiError] = useState('')
+
+  async function handleAiDraft() {
+    setAiLoading(true)
+    setAiError('')
+
+    const res = await fetch('/api/ai/draft-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactId, orgId, dealId, channel: 'email', sequenceStep: aiStep }),
+    })
+
+    const data = await res.json()
+    setAiLoading(false)
+
+    if (!res.ok || !data.success) {
+      setAiError(data.error || 'Failed to generate draft')
+      return
+    }
+
+    // Parse subject line from AI response (format: "Subject: ...\n\n...")
+    const msg = data.message || ''
+    const subjectMatch = msg.match(/^(?:Subject:\s*)(.+)/i)
+    if (subjectMatch) {
+      setSubject(subjectMatch[1].trim())
+      const bodyStart = msg.indexOf('\n', subjectMatch.index! + subjectMatch[0].length)
+      setBody(msg.slice(bodyStart).replace(/^\n+/, ''))
+    } else {
+      setBody(msg)
+    }
+  }
 
   async function handleSend() {
     if (!to.trim() || !subject.trim()) { setError('Recipient and subject are required'); return }
@@ -113,6 +155,35 @@ export default function ComposeEmail({ defaultTo, defaultSubject, contactId, org
             <input type="text" value={subject} onChange={e => setSubject(e.target.value)}
               placeholder="Subject"
               className="flex-1 text-sm border border-one70-border rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500" />
+          </div>
+
+          {/* AI Draft toolbar */}
+          <div className="border border-amber-200 rounded-md overflow-hidden">
+            <button onClick={() => setAiOpen(!aiOpen)}
+              className="flex items-center gap-1.5 w-full px-2.5 py-1.5 text-xs font-medium bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors">
+              <Sparkles size={12} />
+              AI Draft
+              {aiOpen ? <ChevronUp size={12} className="ml-auto" /> : <ChevronDown size={12} className="ml-auto" />}
+            </button>
+            {aiOpen && (
+              <div className="px-2.5 py-2 bg-amber-50/50 space-y-2">
+                <div className="flex flex-wrap gap-1">
+                  {AI_SEQUENCE_STEPS.map(s => (
+                    <button key={s.id} onClick={() => setAiStep(s.id)}
+                      className={`px-2 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                        aiStep === s.id ? 'bg-amber-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={handleAiDraft} disabled={aiLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-one70-black text-white rounded text-xs font-semibold hover:bg-one70-dark disabled:opacity-50 transition-colors">
+                  {aiLoading ? <><RefreshCw size={12} className="animate-spin" /> Generating...</> : <><Sparkles size={12} /> Generate Draft</>}
+                </button>
+                {aiError && <p className="text-xs text-red-600">{aiError}</p>}
+              </div>
+            )}
           </div>
 
           <textarea value={body} onChange={e => setBody(e.target.value)}
