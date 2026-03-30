@@ -34,7 +34,7 @@ async function getTasks() {
     .from('tasks')
     .select('*, contacts(first_name, last_name), organizations(name)')
     .eq('status', 'pending')
-    .eq('assigned_to', user.id)
+    .or(`assigned_to.eq.${user.id},assigned_to.is.null`)
     .is('deleted_at', null)
     .order('due_date', { ascending: true, nullsFirst: false })
     .limit(20)
