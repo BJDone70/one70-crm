@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Pencil, Building2, Users, MapPin, Phone, Globe, Activity } from 'lucide-react'
 import AddActivityForm from '@/components/add-activity-form'
 import AddTaskForm from '@/components/add-task-form'
-import { ClickToCall, ClickToEmail, ClickToText } from '@/components/click-actions'
+import { ClickToCall, ClickToText } from '@/components/click-actions'
 import AiDraft from '@/components/ai-draft'
 import MeetingPrep from '@/components/ai-meeting-prep'
 import NoteProcessor from '@/components/ai-note-processor'
@@ -135,10 +135,9 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
                         <p className="text-xs text-one70-mid">{c.title}</p>
                       </Link>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex md:hidden flex-wrap gap-2 mt-2">
                       {c.phone && <ClickToCall value={c.phone} contactId={c.id} orgId={id} contactName={`${c.first_name} ${c.last_name}`} />}
                       {c.phone && <ClickToText value={c.phone} contactId={c.id} orgId={id} contactName={`${c.first_name} ${c.last_name}`} />}
-                      {c.email && <ClickToEmail value={c.email} contactId={c.id} orgId={id} contactName={`${c.first_name} ${c.last_name}`} />}
                     </div>
                   </div>
                 ))}
