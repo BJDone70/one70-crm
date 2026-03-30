@@ -205,18 +205,10 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
           } ${isCompleted ? 'opacity-60' : ''} ${isSubtask ? 'ml-8 border-l-2 border-l-blue-200' : ''} ${
             isSelected ? 'ring-2 ring-blue-400 border-blue-400' : ''
           }`}>
-          {/* Multi-select checkbox */}
-          <button onClick={e => toggleSelectTask(e, task.id)}
-            className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-              isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-200 hover:border-blue-400'
-            }`} title="Select task">
-            {isSelected && <Check size={10} className="text-white" />}
-          </button>
-
           <button
             onClick={e => isCompleted ? reopenTask(e, task.id) : completeTask(e, task)}
             disabled={completing === task.id}
-            className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
               isCompleted ? 'border-green-500 bg-green-500' : isSubtask ? 'border-blue-300 hover:border-blue-500 hover:bg-blue-50' : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
             }`} title={isCompleted ? 'Reopen' : 'Complete'}>
             {isCompleted && <Check size={12} className="text-white" />}
@@ -230,6 +222,13 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
                 {task.is_private && <span title="Private task"><Lock size={11} className="text-gray-400 shrink-0" /></span>}
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {/* Multi-select checkbox — square to distinguish from round complete button */}
+                <button onClick={e => toggleSelectTask(e, task.id)}
+                  className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-colors mr-1 ${
+                    isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 hover:border-blue-400'
+                  }`} title="Select for bulk actions">
+                  {isSelected && <Check size={9} className="text-white" />}
+                </button>
                 {/* Sub-task count badge on parent */}
                 {!isSubtask && subCount > 0 && (
                   <button onClick={e => { e.preventDefault(); e.stopPropagation(); toggleExpand(task.id) }}
