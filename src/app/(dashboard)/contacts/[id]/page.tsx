@@ -134,6 +134,20 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {contact.linkedin_url && (
+            <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 border border-one70-border rounded-md text-xs font-medium hover:bg-one70-gray transition-colors">
+              💼 LinkedIn
+            </a>
+          )}
+          {contact.email && (
+            <ComposeEmail
+              defaultTo={contact.email}
+              contactId={id}
+              orgId={contact.org_id}
+              contactName={contact.first_name}
+              compact
+            />
+          )}
           <SaveToPhone
             firstName={contact.first_name} lastName={contact.last_name}
             email={contact.email} phone={contact.phone} title={contact.title}
@@ -150,41 +164,24 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* Quick action bar — one-tap call, text (mobile/app only), LinkedIn always visible */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      {/* Quick action bar — mobile only: call & text */}
+      <div className="flex md:hidden flex-wrap gap-2 mb-4">
         {contact.mobile_phone && (
-          <a href={`tel:${contact.mobile_phone}`} className="flex md:hidden items-center gap-1.5 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
+          <a href={`tel:${contact.mobile_phone}`} className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-semibold active:scale-95 transition-all">
             📱 Call Mobile
           </a>
         )}
         {contact.phone && (
-          <a href={`tel:${contact.phone}`} className="flex md:hidden items-center gap-1.5 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
+          <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-semibold active:scale-95 transition-all">
             📞 Call Office
           </a>
         )}
         {contact.mobile_phone && (
-          <a href={`sms:${contact.mobile_phone}`} className="flex md:hidden items-center gap-1.5 px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
+          <a href={`sms:${contact.mobile_phone}`} className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold active:scale-95 transition-all">
             💬 Text
           </a>
         )}
-        {contact.linkedin_url && (
-          <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-700 text-white rounded-lg text-sm font-semibold active:scale-95 transition-all">
-            💼 LinkedIn
-          </a>
-        )}
       </div>
-
-      {/* Compose email */}
-      {contact.email && (
-        <div className="mb-6">
-          <ComposeEmail
-            defaultTo={contact.email}
-            contactId={id}
-            orgId={contact.org_id}
-            contactName={contact.first_name}
-          />
-        </div>
-      )}
 
       {/* Mobile section navigator */}
       <MobileSectionNav sections={[
