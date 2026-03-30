@@ -26,11 +26,16 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
     .is('deleted_at', null)
     .order('due_date', { ascending: true, nullsFirst: false })
 
-  // Filter by assignee
+  // Filter by assignee (supports comma-separated IDs for multi-select)
   if (assignee === 'mine') {
     query = query.or(`assigned_to.eq.${user.id},assigned_to.is.null`)
   } else if (assignee !== 'all') {
-    query = query.or(`assigned_to.eq.${assignee},assigned_to.is.null`)
+    const ids = assignee.split(',').filter(Boolean)
+    if (ids.length === 1) {
+      query = query.or(`assigned_to.eq.${ids[0]},assigned_to.is.null`)
+    } else {
+      query = query.or(`assigned_to.in.(${ids.join(',')}),assigned_to.is.null`)
+    }
   }
   // For 'all': fetch everything, then filter private in JS
 

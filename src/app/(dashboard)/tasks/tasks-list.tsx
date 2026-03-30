@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Check, AlertCircle, CalendarDays, Bell, Pencil, Trash2, Lock, User, CornerDownRight, ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
+import { Check, AlertCircle, CalendarDays, Bell, Pencil, Trash2, Lock, User, CornerDownRight, ChevronDown, ChevronRight, Plus, X, Users } from 'lucide-react'
 import PillFilter from '@/components/pill-filter'
 
 interface Task {
@@ -45,6 +45,7 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
   const searchParams = useSearchParams()
   const [completing, setCompleting] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [repDropdownOpen, setRepDropdownOpen] = useState(false)
   // Follow-up prompt state
   const [followUpTask, setFollowUpTask] = useState<Task | null>(null)
   const [followUpTitle, setFollowUpTitle] = useState('')
@@ -250,28 +251,88 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
         <PillFilter options={typeOptions} value={currentType} onChange={v => updateFilter('type', v)} allowDeselect={false} />
 
         {/* Assignee filter */}
-        <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => updateFilter('assignee', 'mine')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-              currentAssignee === 'mine' ? 'bg-one70-black text-white border-one70-black' : 'bg-white text-one70-dark border-one70-border hover:border-one70-dark'
-            }`}>
-            <User size={12} /> My Tasks
-          </button>
-          <button onClick={() => updateFilter('assignee', 'all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-              currentAssignee === 'all' ? 'bg-one70-black text-white border-one70-black' : 'bg-white text-one70-dark border-one70-border hover:border-one70-dark'
-            }`}>
-            All Tasks
-          </button>
-          {reps.length > 1 && reps.filter(r => r.id !== currentUserId).map(r => (
-            <button key={r.id} onClick={() => updateFilter('assignee', r.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                currentAssignee === r.id ? 'bg-one70-black text-white border-one70-black' : 'bg-white text-one70-dark border-one70-border hover:border-one70-dark'
-              }`}>
-              {r.full_name.split(' ')[0]}
-            </button>
-          ))}
-        </div>
+        {(() => {
+          const otherReps = reps.filter(r => r.id !== currentUserId)
+          const selectedIds = currentAssignee !== 'mine' && currentAssignee !== 'all' ? currentAssignee.split(',') : []
+          const isMultiSelect = selectedIds.length > 0
+          const useDropdown = otherReps.length >= 4
+
+          function toggleRep(id: string) {
+            const current = new Set(selectedIds)
+            if (current.has(id)) {
+              current.delete(id)
+              if (current.size === 0) { updateFilter('assignee', 'mine'); return }
+            } else {
+              current.add(id)
+            }
+            updateFilter('assignee', [...current].join(','))
+          }
+
+          return (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <button onClick={() => updateFilter('assignee', 'mine')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                  currentAssignee === 'mine' ? 'bg-one70-black text-white border-one70-black' : 'bg-white text-one70-dark border-one70-border hover:border-one70-dark'
+                }`}>
+                <User size={12} /> My Tasks
+              </button>
+              <button onClick={() => updateFilter('assignee', 'all')}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                  currentAssignee === 'all' ? 'bg-one70-black text-white border-one70-black' : 'bg-white text-one70-dark border-one70-border hover:border-one70-dark'
+                }`}>
+                All Tasks
+              </button>
+
+              {otherReps.length > 0 && !useDropdown && otherReps.map(r => (
+                <button key={r.id} onClick={() => toggleRep(r.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                    selectedIds.includes(r.id) ? 'bg-one70-black text-white border-one70-black' : 'bg-white text-one70-dark border-one70-border hover:border-one70-dark'
+                  }`}>
+                  {r.full_name.split(' ')[0]}
+                </button>
+              ))}
+
+              {otherReps.length > 0 && useDropdown && (
+                <div className="relative">
+                  <button onClick={() => setRepDropdownOpen(!repDropdownOpen)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                      isMultiSelect ? 'bg-one70-black text-white border-one70-black' : 'bg-white text-one70-dark border-one70-border hover:border-one70-dark'
+                    }`}>
+                    <Users size={12} />
+                    {isMultiSelect
+                      ? `${selectedIds.length} selected`
+                      : 'Team Member'}
+                    <ChevronDown size={10} />
+                  </button>
+                  {repDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setRepDropdownOpen(false)} />
+                      <div className="absolute top-full left-0 mt-1 bg-white border border-one70-border rounded-lg shadow-lg z-50 py-1 min-w-[180px]">
+                        {otherReps.map(r => (
+                          <button key={r.id} onClick={() => toggleRep(r.id)}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left hover:bg-one70-gray transition-colors">
+                            <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                              selectedIds.includes(r.id) ? 'border-one70-black bg-one70-black' : 'border-gray-300'
+                            }`}>
+                              {selectedIds.includes(r.id) && <Check size={10} className="text-white" />}
+                            </span>
+                            {r.full_name}
+                          </button>
+                        ))}
+                        {isMultiSelect && (
+                          <button onClick={() => { updateFilter('assignee', 'mine'); setRepDropdownOpen(false) }}
+                            className="w-full px-3 py-2 text-xs text-left text-red-600 hover:bg-red-50 transition-colors border-t border-one70-border mt-1">
+                            Clear selection
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Key note reminders */}
