@@ -117,7 +117,7 @@ export default function MobileAssistantPage() {
 
         // Request OS-level permission (shows iOS prompt on first use)
         const perms = await NativeSpeech.requestPermissions()
-        if (perms.speechRecognition !== 'granted' || perms.microphone !== 'granted') {
+        if (perms.speechRecognition !== 'granted') {
           alert('Microphone access denied.\n\nTo fix: open iPhone Settings → ONE70 CRM → turn on Microphone and Speech Recognition.')
           return
         }
