@@ -11,6 +11,19 @@ interface BriefingItem {
   icon: string
 }
 
+// Returns the most recent update window boundary (7am, 12pm, 4pm)
+function getCurrentWindow(): number {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const windows = [7, 12, 16] // 7am, 12pm, 4pm
+  let latestWindow = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 16).getTime() // yesterday 4pm
+  for (const hour of windows) {
+    const windowTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour).getTime()
+    if (now.getTime() >= windowTime) latestWindow = windowTime
+  }
+  return latestWindow
+}
+
 export default function DashboardBriefing() {
   const [items, setItems] = useState<BriefingItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -18,21 +31,19 @@ export default function DashboardBriefing() {
   const router = useRouter()
 
   async function loadBriefing(force?: boolean) {
-    // Check cache (30 min TTL)
+    const currentWindow = getCurrentWindow()
+
     if (!force) {
-      const cached = sessionStorage.getItem('one70_briefing')
-      const cachedAt = sessionStorage.getItem('one70_briefing_at')
-      if (cached && cachedAt) {
-        const age = Date.now() - parseInt(cachedAt)
-        if (age < 30 * 60 * 1000) {
-          try {
-            const parsedItems = JSON.parse(cached) as BriefingItem[]
-            setItems(parsedItems)
-            setLoading(false)
-            return
-          } catch {}
+      try {
+        const cached = localStorage.getItem('one70_briefing')
+        const cachedWindow = localStorage.getItem('one70_briefing_window')
+        if (cached && cachedWindow && parseInt(cachedWindow) === currentWindow) {
+          const parsedItems = JSON.parse(cached) as BriefingItem[]
+          setItems(parsedItems)
+          setLoading(false)
+          return
         }
-      }
+      } catch {}
     }
 
     try {
@@ -40,8 +51,8 @@ export default function DashboardBriefing() {
       if (res.ok) {
         const data = await res.json()
         setItems(data.items || [])
-        sessionStorage.setItem('one70_briefing', JSON.stringify(data.items || []))
-        sessionStorage.setItem('one70_briefing_at', Date.now().toString())
+        localStorage.setItem('one70_briefing', JSON.stringify(data.items || []))
+        localStorage.setItem('one70_briefing_window', currentWindow.toString())
       }
     } catch {}
     setLoading(false)
@@ -85,6 +96,7 @@ export default function DashboardBriefing() {
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-one70-yellow" />
           <span className="text-sm font-bold text-one70-black">Today's Briefing</span>
+          <span className="text-[10px] text-gray-400 ml-1">Updated 3x daily</span>
         </div>
         <button
           onClick={handleRefresh}
