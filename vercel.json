@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/backup",
+      "schedule": "0 10 * * 1"
+    },
+    {
+      "path": "/api/cron/email-monitor",
+      "schedule": "0 12,16,21 * * *"
+    },
+    {
+      "path": "/api/cron/m365-sync",
+      "schedule": "0 11,14,17,20,23 * * *"
+    }
+  ]
+}

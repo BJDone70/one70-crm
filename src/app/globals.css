@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --one70-yellow: #FFE500;
+  --one70-black: #1A1A1A;
+  --one70-dark: #333333;
+  --one70-gray: #F5F5F5;
+  --one70-mid: #666666;
+  --one70-border: #E5E5E5;
+  --sidebar-width: 256px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-one70-yellow: #FFE500;
+  --color-one70-black: #1A1A1A;
+  --color-one70-dark: #333333;
+  --color-one70-gray: #F5F5F5;
+  --color-one70-mid: #666666;
+  --color-one70-border: #E5E5E5;
+  --color-one70-yellow-light: #FFF9CC;
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #999; }
+
+/* Hide horizontal scrollbar on pill filters */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile main content clears header + Dynamic Island safe area */
+@media (max-width: 1023px) {
+  .main-with-sidebar {
+    padding-top: calc(3rem + env(safe-area-inset-top, 0px)) !important;
+  }
+}
+
+/* Hide bottom tab bar on desktop */
+@media (min-width: 1024px) {
+  .bottom-tab-bar { display: none; }
+}
+
+/* Bottom safe area for FAB button */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .fab-safe-bottom {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Global tap/click feedback for interactive elements */
+button, a, [role="button"], .cursor-pointer {
+  -webkit-tap-highlight-color: rgba(255, 229, 0, 0.15);
+}
+
+button:active:not(:disabled),
+[role="button"]:active {
+  opacity: 0.85;
+  transition: opacity 0.1s ease;
+}
+
+/* Card/row tap feedback */
+tr.clickable-row:active {
+  background-color: var(--one70-yellow-light, #FFF9CC) !important;
+}
+
+/* Ensure touch-friendly targets on mobile — only for primary action buttons */
+@media (max-width: 1023px) {
+  .touch-target {
+    min-height: 44px;
+  }
+}
+
+/* ===== KEYBOARD HANDLING ===== */
+/* Scroll focused input into view on all platforms */
+input:focus, textarea:focus, select:focus {
+  scroll-margin-bottom: 120px;
+}
+
+/* When keyboard is open, ensure page content doesn't hide behind it */
+@supports (padding-bottom: env(keyboard-inset-height)) {
+  body {
+    padding-bottom: env(keyboard-inset-height, 0px);
+  }
+}
+
+/* Prevent iOS auto-zoom on input focus (font-size < 16px triggers zoom) */
+@media (max-width: 1023px) {
+  input[type="text"], input[type="email"], input[type="password"],
+  input[type="tel"], input[type="url"], input[type="search"],
+  input[type="number"], input[type="date"], input[type="datetime-local"],
+  textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Fixed bottom elements should respect keyboard */
+@supports (bottom: env(keyboard-inset-height)) {
+  .fixed-bottom-keyboard-aware {
+    bottom: env(keyboard-inset-height, 0px) !important;
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "66a7725c-892b-4627-8310-37e5fc8ecf7d",
+  "packageName": "com.one70group.crm",
+  "developer": {
+    "name": "ONE70 Group",
+    "websiteUrl": "https://one70group.com",
+    "privacyUrl": "https://one70group.com/privacy",
+    "termsOfUseUrl": "https://one70group.com/terms"
+  },
+  "name": {
+    "short": "ONE70 CRM",
+    "full": "ONE70 Group CRM — Sales & Project Management"
+  },
+  "description": {
+    "short": "Sales pipeline, contacts, projects, and outreach for ONE70 Group",
+    "full": "Custom-built CRM for ONE70 Group commercial construction. Manage your sales pipeline, contacts, organizations, properties, projects, email sequences, and outreach — all from within Microsoft Teams. Covers multifamily, hotel, and senior living verticals across the Eastern US."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#FFE500",
+  "staticTabs": [
+    {
+      "entityId": "dashboard",
+      "name": "Dashboard",
+      "contentUrl": "https://REPLACE_WITH_YOUR_URL/?teams=1",
+      "websiteUrl": "https://REPLACE_WITH_YOUR_URL/",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "pipeline",
+      "name": "Pipeline",
+      "contentUrl": "https://REPLACE_WITH_YOUR_URL/deals?teams=1",
+      "websiteUrl": "https://REPLACE_WITH_YOUR_URL/deals",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "contacts",
+      "name": "Contacts",
+      "contentUrl": "https://REPLACE_WITH_YOUR_URL/contacts?teams=1",
+      "websiteUrl": "https://REPLACE_WITH_YOUR_URL/contacts",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "projects",
+      "name": "Projects",
+      "contentUrl": "https://REPLACE_WITH_YOUR_URL/projects?teams=1",
+      "websiteUrl": "https://REPLACE_WITH_YOUR_URL/projects",
+      "scopes": ["personal"]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://REPLACE_WITH_YOUR_URL/teams/config",
+      "canUpdateConfiguration": true,
+      "scopes": ["team", "groupchat"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": [
+    "REPLACE_WITH_YOUR_DOMAIN"
+  ]
+}

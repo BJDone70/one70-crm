@@ -1,0 +1,160 @@
+workflows:
+  ios-release:
+    name: ONE70 CRM iOS
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: ONE70 API KEY
+
+    environment:
+      groups:
+        - ios_credentials
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+        BUNDLE_ID: "com.one70group.crm"
+      node: 22
+
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
+
+      - name: Ensure web assets directory exists
+        script: |
+          mkdir -p out
+          cat > out/index.html << 'LOADING'
+          <!DOCTYPE html>
+          <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>ONE70 CRM</title>
+          <style>body{margin:0;background:#1A1A1A;display:flex;align-items:center;justify-content:center;height:100vh}
+          .s{width:40px;height:40px;border:3px solid #333;border-top-color:#FFE500;border-radius:50%;animation:r .8s linear infinite;margin:0 auto 16px}
+          @keyframes r{to{transform:rotate(360deg)}}p{color:#999;font-family:Arial;font-size:14px}</style></head>
+          <body><div style="text-align:center"><div class="s"></div><p>Loading ONE70 CRM...</p></div></body></html>
+          LOADING
+
+      - name: Sync Capacitor iOS
+        script: |
+          npx cap sync ios
+
+      - name: Ensure Info.plist privacy strings
+        script: |
+          PLIST="$CM_BUILD_DIR/ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'ONE70 CRM uses the camera to scan business cards and QR codes'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'ONE70 CRM uses the camera to scan business cards and QR codes'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'ONE70 CRM needs photo access to upload business card images for scanning'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'ONE70 CRM needs photo access to upload business card images for scanning'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :NSContactsUsageDescription 'ONE70 CRM can import contacts from your phone into the CRM'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :NSContactsUsageDescription string 'ONE70 CRM can import contacts from your phone into the CRM'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :NSFaceIDUsageDescription 'ONE70 CRM uses Face ID for quick and secure sign in'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :NSFaceIDUsageDescription string 'ONE70 CRM uses Face ID for quick and secure sign in'" "$PLIST"
+          echo "Verified:"
+          /usr/libexec/PlistBuddy -c "Print :NSFaceIDUsageDescription" "$PLIST"
+
+      - name: Ensure push notification entitlements
+        script: |
+          ENTITLEMENTS="$CM_BUILD_DIR/ios/App/App/App.entitlements"
+          
+          # Always write fresh entitlements to avoid formatting issues
+          printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n\t<key>aps-environment</key>\n\t<string>production</string>\n</dict>\n</plist>\n' > "$ENTITLEMENTS"
+          
+          echo "Push entitlements:"
+          cat "$ENTITLEMENTS"
+          /usr/libexec/PlistBuddy -c "Print :aps-environment" "$ENTITLEMENTS"
+          
+          # Ensure pbxproj references the entitlements
+          PBXPROJ="$CM_BUILD_DIR/ios/App/App.xcodeproj/project.pbxproj"
+          if ! grep -q "CODE_SIGN_ENTITLEMENTS" "$PBXPROJ"; then
+            sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_ENTITLEMENTS = App\/App.entitlements;\n\t\t\t\tCODE_SIGN_STYLE = Automatic;/g' "$PBXPROJ"
+            echo "Added entitlements reference to pbxproj"
+          else
+            echo "Entitlements already referenced in pbxproj"
+          fi
+
+      - name: Fetch signing files from App Store Connect
+        script: |
+          openssl genrsa -out $HOME/cert_key.pem 2048
+          openssl rsa -in $HOME/cert_key.pem -check -noout
+          echo "Cleaning old certificates and profiles..."
+          python3 "$CM_BUILD_DIR/ios/scripts/clean_signing.py"
+          echo "Fetching signing files for main app..."
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --certificate-key=@file:$HOME/cert_key.pem
+          echo "Fetching signing files for Share Extension..."
+          app-store-connect fetch-signing-files "com.one70group.crm.ShareExtension" \
+            --type IOS_APP_STORE \
+            --create \
+            --certificate-key=@file:$HOME/cert_key.pem
+
+      - name: Add Share Extension target to Xcode project
+        script: |
+          gem install xcodeproj --no-document 2>/dev/null || true
+          ruby "$CM_BUILD_DIR/ios/scripts/add_share_extension.rb"
+
+      - name: Initialize keychain and set up profiles
+        script: |
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Re-apply push entitlements after profile setup
+        script: |
+          ENTITLEMENTS="$CM_BUILD_DIR/ios/App/App/App.entitlements"
+          PBXPROJ="$CM_BUILD_DIR/ios/App/App.xcodeproj/project.pbxproj"
+          PLIST="$CM_BUILD_DIR/ios/App/App/Info.plist"
+          printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n\t<key>aps-environment</key>\n\t<string>production</string>\n</dict>\n</plist>\n' > "$ENTITLEMENTS"
+          echo "Entitlements file:"
+          cat "$ENTITLEMENTS"
+          python3 "$CM_BUILD_DIR/ios/scripts/fix_entitlements.py" "$PBXPROJ"
+          grep "CODE_SIGN_ENTITLEMENTS" "$PBXPROJ" | head -5
+          if /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$PLIST" 2>/dev/null | grep -q "remote-notification"; then
+            echo "UIBackgroundModes OK"
+          else
+            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" "$PLIST" 2>/dev/null || true
+            echo "Added UIBackgroundModes"
+          fi
+
+      - name: Increment build number
+        script: |
+          cd $CM_BUILD_DIR/ios/App
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo "1")
+          NEXT=$(($LATEST + 1))
+          if [ "$NEXT" -lt 2 ]; then NEXT=2; fi
+          echo "Setting build number to $NEXT"
+          agvtool new-version -all $NEXT
+
+      - name: Build iOS app
+        script: |
+          cd $CM_BUILD_DIR
+          
+          # Verify entitlements one final time before build
+          echo "=== Pre-build entitlements check ==="
+          cat ios/App/App/App.entitlements
+          grep "CODE_SIGN_ENTITLEMENTS" ios/App/App.xcodeproj/project.pbxproj | head -5
+          echo "==================================="
+          
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - ONE70 Team
+      email:
+        recipients:
+          - info@one70group.com
+        notify:
+          success: true
+          failure: true
