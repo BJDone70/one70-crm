@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Check, AlertCircle, CalendarDays, Bell, Pencil, Trash2, Lock, User, CornerDownRight, ChevronDown, ChevronRight, Plus, X, Users } from 'lucide-react'
+import { Check, AlertCircle, CalendarDays, Bell, Pencil, Trash2, Lock, User, CornerDownRight, ChevronDown, ChevronRight, Plus, X, Users, Calendar } from 'lucide-react'
 import PillFilter from '@/components/pill-filter'
 
 interface Task {
@@ -46,6 +46,32 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
   const [completing, setCompleting] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [repDropdownOpen, setRepDropdownOpen] = useState(false)
+  // Multi-select for bulk due date update
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set())
+  const [bulkDate, setBulkDate] = useState('')
+  const [bulkUpdating, setBulkUpdating] = useState(false)
+
+  function toggleSelectTask(e: React.MouseEvent, id: string) {
+    e.preventDefault(); e.stopPropagation()
+    setSelectedTasks(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function bulkUpdateDueDate() {
+    if (!bulkDate || selectedTasks.size === 0) return
+    setBulkUpdating(true)
+    const ids = [...selectedTasks]
+    await Promise.all(ids.map(id =>
+      supabase.from('tasks').update({ due_date: bulkDate }).eq('id', id)
+    ))
+    setBulkUpdating(false)
+    setSelectedTasks(new Set())
+    setBulkDate('')
+    router.refresh()
+  }
   // Follow-up prompt state
   const [followUpTask, setFollowUpTask] = useState<Task | null>(null)
   const [followUpTitle, setFollowUpTitle] = useState('')
@@ -147,6 +173,11 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
   // Orphaned sub-tasks (parent not in current view) — show as top-level
   const orphanedSubs = tasks.filter(t => t.parent_task_id && !topLevelTasks.some(p => p.id === t.parent_task_id))
 
+  function selectAllVisible() {
+    const allIds = [...topLevelTasks, ...orphanedSubs].map(t => t.id)
+    setSelectedTasks(new Set(allIds))
+  }
+
   function toggleExpand(id: string) {
     setExpandedParents(prev => {
       const next = new Set(prev)
@@ -164,12 +195,24 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
     const subDone = subs.filter(s => s.status === 'completed').length
     const isExpanded = expandedParents.has(task.id)
 
+    const isSelected = selectedTasks.has(task.id)
+
     return (
       <div key={task.id}>
         <Link href={`/tasks/${task.id}`}
           className={`flex items-start gap-3 bg-white rounded-lg border p-4 transition-shadow hover:shadow-md ${
             overdue ? 'border-red-300 bg-red-50' : 'border-one70-border'
-          } ${isCompleted ? 'opacity-60' : ''} ${isSubtask ? 'ml-8 border-l-2 border-l-blue-200' : ''}`}>
+          } ${isCompleted ? 'opacity-60' : ''} ${isSubtask ? 'ml-8 border-l-2 border-l-blue-200' : ''} ${
+            isSelected ? 'ring-2 ring-blue-400 border-blue-400' : ''
+          }`}>
+          {/* Multi-select checkbox */}
+          <button onClick={e => toggleSelectTask(e, task.id)}
+            className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+              isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-200 hover:border-blue-400'
+            }`} title="Select task">
+            {isSelected && <Check size={10} className="text-white" />}
+          </button>
+
           <button
             onClick={e => isCompleted ? reopenTask(e, task.id) : completeTask(e, task)}
             disabled={completing === task.id}
@@ -375,6 +418,25 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
           </div>
         )}
       </div>
+
+      {/* Bulk action bar */}
+      {selectedTasks.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white border border-one70-border rounded-xl shadow-2xl px-4 py-3 flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-semibold text-one70-dark">{selectedTasks.size} task{selectedTasks.size > 1 ? 's' : ''} selected</span>
+          <button onClick={selectAllVisible} className="text-xs text-blue-600 hover:underline">Select all</button>
+          <div className="flex items-center gap-2">
+            <Calendar size={14} className="text-one70-mid" />
+            <input type="date" value={bulkDate} onChange={e => setBulkDate(e.target.value)}
+              className="text-xs border border-one70-border rounded-md px-2 py-1.5 focus:outline-none focus:border-blue-500" />
+            <button onClick={bulkUpdateDueDate} disabled={bulkUpdating || !bulkDate}
+              className="px-3 py-1.5 bg-one70-black text-white rounded-md text-xs font-semibold disabled:opacity-30 hover:bg-one70-dark active:scale-95 transition-all">
+              {bulkUpdating ? 'Updating...' : 'Update Due Date'}
+            </button>
+          </div>
+          <button onClick={() => { setSelectedTasks(new Set()); setBulkDate('') }}
+            className="p-1 text-gray-400 hover:text-gray-600"><X size={16} /></button>
+        </div>
+      )}
 
       {/* Follow-up prompt modal */}
       {followUpTask && (
