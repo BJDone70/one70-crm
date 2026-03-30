@@ -28,9 +28,9 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
   // Filter by assignee
   if (assignee === 'mine') {
-    query = query.eq('assigned_to', user.id)
+    query = query.or(`assigned_to.eq.${user.id},assigned_to.is.null`)
   } else if (assignee !== 'all') {
-    query = query.eq('assigned_to', assignee)
+    query = query.or(`assigned_to.eq.${assignee},assigned_to.is.null`)
   }
   // For 'all': fetch everything, then filter private in JS
 
@@ -54,8 +54,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   // Parallelize remaining queries
   const [remindersRes, pendingRes, completedRes, repsRes, profileRes] = await Promise.all([
     supabase.from('key_notes').select('*, contacts(id, first_name, last_name)').not('reminder_date', 'is', null).gte('reminder_date', today).lte('reminder_date', thirtyDays).order('reminder_date'),
-    supabase.from('tasks').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('assigned_to', user.id).eq('status', 'pending'),
-    supabase.from('tasks').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('assigned_to', user.id).eq('status', 'completed'),
+    supabase.from('tasks').select('id', { count: 'exact', head: true }).is('deleted_at', null).or(`assigned_to.eq.${user.id},assigned_to.is.null`).eq('status', 'pending'),
+    supabase.from('tasks').select('id', { count: 'exact', head: true }).is('deleted_at', null).or(`assigned_to.eq.${user.id},assigned_to.is.null`).eq('status', 'completed'),
     supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
     supabase.from('profiles').select('role').eq('id', user.id).single(),
   ])

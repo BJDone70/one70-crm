@@ -165,6 +165,11 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
                   {formatDate(task.due_date)}{task.due_time && ` ${task.due_time.substring(0, 5)}`}
                 </span>
               )}
+              {!task.assigned_to && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">
+                  Unassigned
+                </span>
+              )}
               {isOtherUser && task.assigned_to && (
                 <span className="text-[10px] font-medium px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">
                   {repNameMap[task.assigned_to]?.split(' ')[0] || 'Other'}
