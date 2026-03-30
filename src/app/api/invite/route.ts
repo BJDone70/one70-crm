@@ -1,11 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { sendInviteEmail } from '@/lib/email'
 import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
+import { rateLimitByIp } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
   try {
+    const headerList = await headers()
+    const ip = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown'
+    const { allowed } = rateLimitByIp(ip, 5, 60_000)
+    if (!allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
     const supabase = await createClient()
-    
+
     // Verify the requester is an admin
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {

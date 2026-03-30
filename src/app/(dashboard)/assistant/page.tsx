@@ -35,14 +35,21 @@ export default function MobileAssistantPage() {
       isNativeRef.current = isNative
 
       if (isNative) {
-        // Use native Capacitor plugin — handles iOS/Android permission natively
+        // Try native Capacitor plugin first; fall back to web speech if plugin not yet registered
         try {
           const { available } = await NativeSpeech.available()
-          setSpeechSupported(available)
+          if (available) {
+            isNativeRef.current = true
+            setSpeechSupported(true)
+            return
+          }
         } catch {
-          setSpeechSupported(false)
+          // Native plugin not registered yet (needs Codemagic rebuild + cap sync)
         }
-      } else {
+        // Fall back to web speech API (works in WKWebView on iOS 15+)
+        isNativeRef.current = false
+      }
+      {
         // Web Speech API for browser
         const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
         if (!SR) { setSpeechSupported(false); return }

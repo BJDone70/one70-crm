@@ -33,9 +33,9 @@ export async function GET(request: Request) {
         .or(`first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern},title.ilike.${pattern},phone.ilike.${pattern},mobile_phone.ilike.${pattern},notes.ilike.${pattern}`)
         .is('deleted_at', null).limit(8),
       supabase.from('deals')
-        .select('id, name, stage, vertical, value')
+        .select('id, name, stage, vertical, value, notes')
         .is('deleted_at', null)
-        .or(`name.ilike.${pattern}`)
+        .or(`name.ilike.${pattern},notes.ilike.${pattern}`)
         .limit(5),
       supabase.from('properties')
         .select('id, name, city, state, org_id, organizations(name)')
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
         .ilike('name', pattern)
         .limit(5),
       supabase.from('tasks')
-        .select('id, title, status, type, due_date, contacts(first_name, last_name)')
+        .select('id, title, status, type, due_date, description, contacts(first_name, last_name)')
         .or(`title.ilike.${pattern},description.ilike.${pattern}`)
         .is('deleted_at', null)
         .limit(5),
@@ -118,12 +118,14 @@ export async function GET(request: Request) {
       })),
       ...(tasks.data || []).map(t => {
         const contact = t.contacts ? `${(t.contacts as any).first_name} ${(t.contacts as any).last_name}` : ''
+        const typeLabel = t.type === 'next_step' ? 'Next Step' : t.type?.replace('_', ' ')
+        const descSnippet = t.description && t.description.length > 0 ? t.description.slice(0, 60) + (t.description.length > 60 ? '…' : '') : ''
         return {
           type: 'task' as const, id: t.id,
           title: t.title,
-          subtitle: [t.status, t.type?.replace('_', ' '), contact, t.due_date].filter(Boolean).join(' · '),
+          subtitle: [t.status, typeLabel, contact, descSnippet || t.due_date].filter(Boolean).join(' · '),
           href: `/tasks/${t.id}`,
-          _score: score(`${t.title} ${contact}`),
+          _score: score(`${t.title} ${contact} ${t.description || ''}`),
         }
       }),
       ...(activities.data || []).map(a => {

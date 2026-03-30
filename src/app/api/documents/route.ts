@@ -29,6 +29,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File too large. Maximum 10MB.' }, { status: 400 })
     }
 
+    // Validate MIME type — allow common business document and image types
+    const ALLOWED_MIME_TYPES = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain', 'text/csv',
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+    ])
+    if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
+      return NextResponse.json({ error: `File type "${file.type}" is not allowed.` }, { status: 400 })
+    }
+
     // Upload to Supabase Storage
     const ext = file.name.split('.').pop() || 'bin'
     const path = `${recordType}/${recordId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`

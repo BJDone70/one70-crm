@@ -116,6 +116,7 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
         <button
           onClick={() => setMobileOpen(false)}
           className="lg:hidden p-1 rounded hover:bg-white/10 transition-colors"
+          aria-label="Close menu"
         >
           <X size={20} />
         </button>
@@ -230,6 +231,7 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
             <button
               onClick={() => setMobileOpen(true)}
               className="p-2 rounded hover:bg-white/10 transition-colors"
+              aria-label="Open menu"
             >
               <Menu size={20} />
             </button>

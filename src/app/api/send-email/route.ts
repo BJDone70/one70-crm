@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail, isM365Connected } from '@/lib/microsoft-graph'
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { headers } from 'next/headers'
+import { rateLimitByIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -11,6 +13,11 @@ const supabaseAdmin = createAdmin(
 )
 
 export async function POST(request: Request) {
+  const headerList = await headers()
+  const ip = headerList.get('x-forwarded-for')?.split(',')[0] || 'unknown'
+  const { allowed } = rateLimitByIp(ip, 10, 60_000)
+  if (!allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

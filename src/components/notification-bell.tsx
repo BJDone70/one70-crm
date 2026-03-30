@@ -95,7 +95,8 @@ export default function NotificationBell() {
   return (
     <div ref={containerRef} className="relative">
       <button onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-one70-gray transition-colors">
+        className="relative p-2 rounded-lg hover:bg-one70-gray transition-colors"
+        aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}>
         <Bell size={20} className="text-one70-mid" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
