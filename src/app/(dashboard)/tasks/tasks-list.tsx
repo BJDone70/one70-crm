@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Check, AlertCircle, CalendarDays, Bell, Pencil, Trash2, Lock, User, CornerDownRight, ChevronDown, ChevronRight } from 'lucide-react'
+import { Check, AlertCircle, CalendarDays, Bell, Pencil, Trash2, Lock, User, CornerDownRight, ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
 import PillFilter from '@/components/pill-filter'
 
 interface Task {
@@ -45,6 +45,14 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
   const searchParams = useSearchParams()
   const [completing, setCompleting] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  // Follow-up prompt state
+  const [followUpTask, setFollowUpTask] = useState<Task | null>(null)
+  const [followUpTitle, setFollowUpTitle] = useState('')
+  const [followUpType, setFollowUpType] = useState('follow_up')
+  const [followUpPriority, setFollowUpPriority] = useState('medium')
+  const [followUpDays, setFollowUpDays] = useState('3')
+  const [followUpAssignee, setFollowUpAssignee] = useState('')
+  const [followUpLoading, setFollowUpLoading] = useState(false)
 
   const repNameMap = Object.fromEntries(reps.map(r => [r.id, r.full_name]))
 
@@ -54,10 +62,49 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
     router.push(`/tasks?${params.toString()}`)
   }
 
-  async function completeTask(e: React.MouseEvent, id: string) {
-    e.preventDefault(); e.stopPropagation(); setCompleting(id)
-    await supabase.from('tasks').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id)
-    setCompleting(null); router.refresh()
+  async function completeTask(e: React.MouseEvent, task: Task) {
+    e.preventDefault(); e.stopPropagation(); setCompleting(task.id)
+    await supabase.from('tasks').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', task.id)
+    setCompleting(null)
+    // Show follow-up prompt
+    const linkedName = [
+      task.contacts && `${task.contacts.first_name} ${task.contacts.last_name}`,
+      task.organizations?.name,
+      task.deals && `Deal: ${task.deals.name}`,
+    ].filter(Boolean).join(' | ')
+    setFollowUpTask(task)
+    setFollowUpTitle(`Follow up: ${task.title}`)
+    setFollowUpType('follow_up')
+    setFollowUpPriority('medium')
+    setFollowUpDays('3')
+    setFollowUpAssignee(task.assigned_to || currentUserId)
+  }
+
+  async function createFollowUp() {
+    if (!followUpTask || !followUpTitle.trim()) return
+    setFollowUpLoading(true)
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + parseInt(followUpDays || '3'))
+    await supabase.from('tasks').insert({
+      title: followUpTitle.trim(),
+      type: followUpType,
+      priority: followUpPriority,
+      due_date: dueDate.toISOString().split('T')[0],
+      contact_id: followUpTask.contact_id,
+      org_id: followUpTask.org_id,
+      deal_id: followUpTask.deal_id,
+      assigned_to: followUpAssignee || currentUserId,
+      created_by: currentUserId,
+      status: 'pending',
+    })
+    setFollowUpLoading(false)
+    setFollowUpTask(null)
+    router.refresh()
+  }
+
+  function skipFollowUp() {
+    setFollowUpTask(null)
+    router.refresh()
   }
 
   async function reopenTask(e: React.MouseEvent, id: string) {
@@ -123,7 +170,7 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
             overdue ? 'border-red-300 bg-red-50' : 'border-one70-border'
           } ${isCompleted ? 'opacity-60' : ''} ${isSubtask ? 'ml-8 border-l-2 border-l-blue-200' : ''}`}>
           <button
-            onClick={e => isCompleted ? reopenTask(e, task.id) : completeTask(e, task.id)}
+            onClick={e => isCompleted ? reopenTask(e, task.id) : completeTask(e, task)}
             disabled={completing === task.id}
             className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
               isCompleted ? 'border-green-500 bg-green-500' : isSubtask ? 'border-blue-300 hover:border-blue-500 hover:bg-blue-50' : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
@@ -267,6 +314,83 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
           </div>
         )}
       </div>
+
+      {/* Follow-up prompt modal */}
+      {followUpTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={skipFollowUp}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-green-100 rounded-full"><Check size={16} className="text-green-600" /></div>
+                <div>
+                  <h3 className="text-sm font-bold text-one70-black">Task Complete!</h3>
+                  <p className="text-xs text-one70-mid">
+                    {[
+                      followUpTask.contacts && `${followUpTask.contacts.first_name} ${followUpTask.contacts.last_name}`,
+                      followUpTask.organizations?.name,
+                    ].filter(Boolean).join(' | ') || 'No linked record'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={skipFollowUp} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+
+            <p className="text-sm text-one70-dark mb-4">Is there a next step or follow-up task?</p>
+
+            <div className="space-y-3">
+              <input type="text" value={followUpTitle} onChange={e => setFollowUpTitle(e.target.value)}
+                placeholder="Follow-up task title..."
+                className="w-full text-sm border border-one70-border rounded-md px-3 py-2.5 focus:outline-none focus:border-one70-black" autoFocus />
+
+              <div className="grid grid-cols-2 gap-2">
+                <select value={followUpType} onChange={e => setFollowUpType(e.target.value)}
+                  className="text-sm border border-one70-border rounded-md px-3 py-2 bg-white">
+                  <option value="follow_up">Follow-up</option>
+                  <option value="next_step">Next Step</option>
+                  <option value="todo">To-do</option>
+                  <option value="reminder">Reminder</option>
+                </select>
+                <select value={followUpPriority} onChange={e => setFollowUpPriority(e.target.value)}
+                  className="text-sm border border-one70-border rounded-md px-3 py-2 bg-white">
+                  <option value="low">Low Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High Priority</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <select value={followUpDays} onChange={e => setFollowUpDays(e.target.value)}
+                  className="text-sm border border-one70-border rounded-md px-3 py-2 bg-white">
+                  <option value="1">Due tomorrow</option>
+                  <option value="2">In 2 days</option>
+                  <option value="3">In 3 days</option>
+                  <option value="5">In 5 days</option>
+                  <option value="7">In 1 week</option>
+                  <option value="14">In 2 weeks</option>
+                  <option value="30">In 1 month</option>
+                </select>
+                <select value={followUpAssignee} onChange={e => setFollowUpAssignee(e.target.value)}
+                  className="text-sm border border-one70-border rounded-md px-3 py-2 bg-white">
+                  {reps.map(r => (
+                    <option key={r.id} value={r.id}>{r.full_name}{r.id === currentUserId ? ' (me)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button onClick={createFollowUp} disabled={followUpLoading || !followUpTitle.trim()}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-one70-black text-white rounded-md text-sm font-semibold disabled:opacity-30 hover:bg-one70-dark active:scale-95 transition-all">
+                <Plus size={14} /> Create Follow-up
+              </button>
+              <button onClick={skipFollowUp}
+                className="px-4 py-2.5 text-one70-mid border border-one70-border rounded-md text-sm font-medium hover:bg-one70-gray transition-colors">
+                No Follow-up
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
