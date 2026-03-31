@@ -56,6 +56,13 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
   const documents = documentsRes.data
   const existingProject = projectRes.data
 
+  // Check if a build project exists for this CRM project
+  let buildProjectExists = false
+  if (existingProject) {
+    const { data: bp } = await supabase.from('build_projects').select('id').eq('crm_project_id', existingProject.id).is('deleted_at', null).single()
+    buildProjectExists = !!bp
+  }
+
   // Name lookup
   const activityUserIds = [...new Set((activities || []).map(a => a.user_id).filter(Boolean))]
   const { data: activityProfiles } = activityUserIds.length > 0
@@ -150,7 +157,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
         </div>
         {deal.stage === WON_STAGE && (
           <div className="mt-3 pt-3 border-t border-one70-border">
-            <ConvertToProject dealId={id} existingProject={existingProject} />
+            <ConvertToProject dealId={id} existingProject={existingProject} buildProjectExists={buildProjectExists} />
           </div>
         )}
       </div>

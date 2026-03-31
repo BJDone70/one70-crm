@@ -2,7 +2,7 @@ import SetPageContext from "@/components/set-page-context"
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Building2, MapPin, DollarSign, Calendar, User, FileText, Pencil } from 'lucide-react'
+import { ArrowLeft, Building2, MapPin, DollarSign, Calendar, User, FileText, Pencil, Hammer } from 'lucide-react'
 import Documents from '@/components/documents'
 import AddActivityForm from '@/components/add-activity-form'
 import ProjectStatusChanger from './project-status'
@@ -33,17 +33,19 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   } catch {}
 
   // Parallelize all remaining queries
-  const [repRes, activitiesRes, repsRes, docsRes] = await Promise.all([
+  const [repRes, activitiesRes, repsRes, docsRes, buildRes] = await Promise.all([
     project.assigned_to
       ? supabase.from('profiles').select('full_name').eq('id', project.assigned_to).single()
       : Promise.resolve({ data: null }),
     supabase.from('activities').select('*').eq('org_id', project.org_id).order('occurred_at', { ascending: false }).limit(20),
     supabase.from('profiles').select('id, full_name').eq('is_active', true),
     supabase.from('documents').select('*').eq('record_type', 'project').eq('record_id', id).order('created_at', { ascending: false }),
+    supabase.from('build_projects').select('id, status, project_number, pm_id, superintendent_id').eq('crm_project_id', id).is('deleted_at', null).single(),
   ])
 
   const repName = repRes.data?.full_name || null
   const activities = activitiesRes.data
+  const buildProject = buildRes.data
   const nameMap = Object.fromEntries((repsRes.data || []).map(r => [r.id, r.full_name]))
   const projectDocs = docsRes.data
 
@@ -131,6 +133,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <FileText size={14} className="text-gray-400" />
                 <span className="text-gray-500">From deal:</span>
                 <Link href={`/deals/${project.deals.id}`} className="text-blue-600 hover:underline">{project.deals.name}</Link>
+              </div>
+            )}
+            {buildProject && (
+              <div className="flex items-center gap-2 text-sm">
+                <Hammer size={14} className="text-orange-500" />
+                <span className="text-gray-500">Build:</span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium">
+                  {buildProject.project_number || 'Pending #'} · {buildProject.status.replace(/_/g, ' ')}
+                </span>
+                {buildProject.pm_id && nameMap[buildProject.pm_id] && (
+                  <span className="text-xs text-gray-400">PM: {nameMap[buildProject.pm_id]}</span>
+                )}
+                {buildProject.superintendent_id && nameMap[buildProject.superintendent_id] && (
+                  <span className="text-xs text-gray-400">Supt: {nameMap[buildProject.superintendent_id]}</span>
+                )}
               </div>
             )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-one70-border">
