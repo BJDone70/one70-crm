@@ -33,7 +33,10 @@ const typeIcons: Record<string, string> = { follow_up: '📞', next_step: '➡�
 const categoryIcons: Record<string, string> = { birthday: '🎂', anniversary: '💍', holiday: '🎄', preference: '⭐', family: '👨‍👩‍👧‍👦', hobby: '🎯', important_date: '📅', other: '📌' }
 
 function isOverdue(d: string | null): boolean {
-  if (!d) return false; const t = new Date(); t.setHours(0, 0, 0, 0); return new Date(d) < t
+  if (!d) return false; const t = new Date(); t.setHours(0, 0, 0, 0); return new Date(d + 'T00:00:00') < t
+}
+function isDueToday(d: string | null): boolean {
+  if (!d) return false; return d === new Date().toISOString().split('T')[0]
 }
 function formatDate(d: string): string {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -187,7 +190,8 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
   }
 
   function renderTask(task: Task, isSubtask = false) {
-    const overdue = isOverdue(task.due_date) && task.status === 'pending'
+    const dueToday = isDueToday(task.due_date) && task.status === 'pending'
+    const overdue = !dueToday && isOverdue(task.due_date) && task.status === 'pending'
     const isCompleted = task.status === 'completed'
     const isOtherUser = task.assigned_to !== currentUserId
     const subs = subTaskMap.get(task.id) || []
@@ -201,7 +205,7 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
       <div key={task.id}>
         <Link href={`/tasks/${task.id}`}
           className={`flex items-start gap-3 bg-white rounded-lg border p-4 transition-shadow hover:shadow-md ${
-            overdue ? 'border-red-300 bg-red-50' : 'border-one70-border'
+            overdue ? 'border-red-300 bg-red-50' : dueToday ? 'border-amber-300 bg-amber-50' : 'border-one70-border'
           } ${isCompleted ? 'opacity-60' : ''} ${isSubtask ? 'ml-8 border-l-2 border-l-blue-200' : ''} ${
             isSelected ? 'ring-2 ring-blue-400 border-blue-400' : ''
           }`}>
@@ -250,9 +254,9 @@ export default function TasksList({ tasks, reminders, currentStatus, currentType
               <span className="text-xs text-gray-400">{typeIcons[task.type]} {task.type.replace('_', ' ')}</span>
               {task.priority === 'high' && <span className="text-[10px] font-medium px-1.5 py-0.5 bg-red-100 text-red-700 rounded">HIGH</span>}
               {task.due_date && (
-                <span className={`text-xs ${overdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                <span className={`text-xs ${overdue ? 'text-red-600 font-medium' : dueToday ? 'text-amber-700 font-medium' : 'text-gray-500'}`}>
                   {overdue && <AlertCircle size={11} className="inline mr-0.5" />}
-                  {formatDate(task.due_date)}{task.due_time && ` ${task.due_time.substring(0, 5)}`}
+                  {dueToday ? 'Due Today' : formatDate(task.due_date)}{task.due_time && ` ${task.due_time.substring(0, 5)}`}
                 </span>
               )}
               {!task.assigned_to && (

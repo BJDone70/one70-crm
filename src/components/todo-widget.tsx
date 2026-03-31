@@ -33,9 +33,10 @@ interface Reminder {
 
 function isOverdue(dueDate: string | null): boolean {
   if (!dueDate) return false
+  if (isDueToday(dueDate)) return false
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  return new Date(dueDate) < today
+  return new Date(dueDate + 'T00:00:00') < today
 }
 
 function isDueToday(dueDate: string | null): boolean {
@@ -91,12 +92,13 @@ export default function TodoWidget({ tasks, reminders }: { tasks: Task[]; remind
 
   function renderTask(task: Task) {
     const overdue_ = isOverdue(task.due_date)
+    const dueToday_ = isDueToday(task.due_date)
     return (
       <Link
         key={task.id}
         href={taskHref(task)}
         className={`flex items-start gap-3 p-3 rounded-md border-l-4 ${priorityStyles[task.priority]} ${
-          overdue_ ? 'bg-red-50' : 'bg-white'
+          overdue_ ? 'bg-red-50' : dueToday_ ? 'bg-amber-50' : 'bg-white'
         } hover:shadow-md transition-shadow`}
       >
         <button
@@ -110,9 +112,9 @@ export default function TodoWidget({ tasks, reminders }: { tasks: Task[]; remind
           <p className="text-sm font-medium text-gray-900">{task.title}</p>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <span className="text-xs text-gray-400">{typeIcons[task.type]} {task.type.replace('_', ' ')}</span>
-            <span className={`text-xs ${overdue_ ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+            <span className={`text-xs ${overdue_ ? 'text-red-600 font-medium' : dueToday_ ? 'text-amber-700 font-medium' : 'text-gray-500'}`}>
               {overdue_ && <AlertCircle size={11} className="inline mr-0.5" />}
-              {formatDueDate(task.due_date, task.due_time)}
+              {dueToday_ ? 'Due Today' : formatDueDate(task.due_date, task.due_time)}
             </span>
           </div>
           {(task.contacts || task.organizations) && (
