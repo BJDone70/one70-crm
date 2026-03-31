@@ -99,6 +99,7 @@ export default function ComposeEmail({ defaultTo, defaultSubject, contactId, org
         setSubject(defaultSubject || '')
         setBody('')
         setCc('')
+        window.dispatchEvent(new Event('timeline-refresh'))
         onSent?.()
       }, 2000)
     } else {

@@ -54,6 +54,7 @@ export default function AddActivityForm({ orgId, contactId, dealId }: AddActivit
     setError('')
     setOpen(false)
     setLoading(false)
+    window.dispatchEvent(new Event('timeline-refresh'))
     router.refresh()
   }
 

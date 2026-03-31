@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Phone, Mail, Users, FileText, Calendar, CheckCircle, ArrowUp, ArrowDown, MessageSquare, Columns3, ClipboardList } from 'lucide-react'
@@ -38,77 +38,86 @@ export default function ContactTimeline({ contactId, orgId }: { contactId: strin
   const [filter, setFilter] = useState('all')
   const supabase = createClient()
 
-  useEffect(() => {
-    async function load() {
-      const allItems: TimelineItem[] = []
+  const loadTimeline = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true)
+    const allItems: TimelineItem[] = []
 
-      // Fetch all data sources in parallel
-      const [activitiesRes, emailsRes, meetingsRes, tasksRes] = await Promise.all([
-        supabase.from('activities')
-          .select('id, type, subject, body, direction, occurred_at')
-          .eq('contact_id', contactId)
-          .order('occurred_at', { ascending: false })
-          .limit(50),
-        supabase.from('email_interactions')
-          .select('id, subject, snippet, direction, from_email, received_at')
-          .eq('contact_id', contactId)
-          .order('received_at', { ascending: false })
-          .limit(30),
-        supabase.from('meeting_tracking')
-          .select('id, subject, meeting_date, location, attendees, notes')
-          .eq('contact_id', contactId)
-          .order('meeting_date', { ascending: false })
-          .limit(20),
-        supabase.from('tasks')
-          .select('id, title, status, type, completed_at, created_at')
-          .eq('contact_id', contactId)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false })
-          .limit(20),
-      ])
+    // Fetch all data sources in parallel
+    const [activitiesRes, emailsRes, meetingsRes, tasksRes] = await Promise.all([
+      supabase.from('activities')
+        .select('id, type, subject, body, direction, occurred_at')
+        .eq('contact_id', contactId)
+        .order('occurred_at', { ascending: false })
+        .limit(50),
+      supabase.from('email_interactions')
+        .select('id, subject, snippet, direction, from_email, received_at')
+        .eq('contact_id', contactId)
+        .order('received_at', { ascending: false })
+        .limit(30),
+      supabase.from('meeting_tracking')
+        .select('id, subject, meeting_date, location, attendees, notes')
+        .eq('contact_id', contactId)
+        .order('meeting_date', { ascending: false })
+        .limit(20),
+      supabase.from('tasks')
+        .select('id, title, status, type, completed_at, created_at')
+        .eq('contact_id', contactId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ])
 
-      for (const a of activitiesRes.data || []) {
-        allItems.push({
-          id: `act-${a.id}`, type: 'activity', icon: a.type || 'note',
-          title: a.subject, body: a.body, date: a.occurred_at,
-          direction: a.direction,
-        })
-      }
-
-      for (const e of emailsRes.data || []) {
-        allItems.push({
-          id: `email-${e.id}`, type: 'email', icon: 'email',
-          title: `${e.direction === 'inbound' ? '← ' : '→ '}${e.subject}`,
-          body: e.snippet, date: e.received_at, direction: e.direction,
-          metadata: { from: e.from_email },
-        })
-      }
-
-      for (const m of meetingsRes.data || []) {
-        allItems.push({
-          id: `meet-${m.id}`, type: 'meeting', icon: 'meeting',
-          title: m.subject, body: [m.location, m.attendees].filter(Boolean).join(' · '),
-          date: m.meeting_date,
-        })
-      }
-
-      for (const t of tasksRes.data || []) {
-        allItems.push({
-          id: `task-${t.id}`, type: 'task', icon: 'task',
-          title: `${t.status === 'completed' ? '✓ ' : '○ '}${t.title}`,
-          body: t.type?.replace('_', ' ') || null,
-          date: t.completed_at || t.created_at,
-          metadata: { taskId: t.id, status: t.status },
-        })
-      }
-
-      // Sort all by date descending
-      allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      setItems(allItems)
-      setLoading(false)
+    for (const a of activitiesRes.data || []) {
+      allItems.push({
+        id: `act-${a.id}`, type: 'activity', icon: a.type || 'note',
+        title: a.subject, body: a.body, date: a.occurred_at,
+        direction: a.direction,
+      })
     }
-    load()
-  }, [contactId])
+
+    for (const e of emailsRes.data || []) {
+      allItems.push({
+        id: `email-${e.id}`, type: 'email', icon: 'email',
+        title: `${e.direction === 'inbound' ? '← ' : '→ '}${e.subject}`,
+        body: e.snippet, date: e.received_at, direction: e.direction,
+        metadata: { from: e.from_email },
+      })
+    }
+
+    for (const m of meetingsRes.data || []) {
+      allItems.push({
+        id: `meet-${m.id}`, type: 'meeting', icon: 'meeting',
+        title: m.subject, body: [m.location, m.attendees].filter(Boolean).join(' · '),
+        date: m.meeting_date,
+      })
+    }
+
+    for (const t of tasksRes.data || []) {
+      allItems.push({
+        id: `task-${t.id}`, type: 'task', icon: 'task',
+        title: `${t.status === 'completed' ? '✓ ' : '○ '}${t.title}`,
+        body: t.type?.replace('_', ' ') || null,
+        date: t.completed_at || t.created_at,
+        metadata: { taskId: t.id, status: t.status },
+      })
+    }
+
+    // Sort all by date descending
+    allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    setItems(allItems)
+    setLoading(false)
+  }, [contactId, supabase])
+
+  useEffect(() => {
+    loadTimeline()
+  }, [loadTimeline])
+
+  // Listen for timeline-refresh events from sibling components
+  useEffect(() => {
+    const handler = () => loadTimeline(false)
+    window.addEventListener('timeline-refresh', handler)
+    return () => window.removeEventListener('timeline-refresh', handler)
+  }, [loadTimeline])
 
   const filters = [
     { id: 'all', label: 'All' },

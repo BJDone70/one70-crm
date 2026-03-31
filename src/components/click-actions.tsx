@@ -58,6 +58,7 @@ export function ClickToCall({ contactId, orgId, dealId, value, contactName }: Ac
         deal_id: dealId || null,
         user_id: user.id,
       })
+      window.dispatchEvent(new Event('timeline-refresh'))
       router.refresh()
     }
   }
@@ -105,6 +106,7 @@ export function ClickToText({ contactId, orgId, dealId, value, contactName }: Ac
         deal_id: dealId || null,
         user_id: user.id,
       })
+      window.dispatchEvent(new Event('timeline-refresh'))
       router.refresh()
     }
   }
