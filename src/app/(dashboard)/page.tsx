@@ -7,6 +7,7 @@ import StaleDealsWidget from '@/components/stale-deals-widget'
 import UnrepliedEmailsWidget from '@/components/unreplied-emails-widget'
 import { ACTIVE_STAGE_IDS, STAGE_LABELS, WON_STAGE, LOST_STAGE, isTerminalStage } from '@/lib/stages'
 import { formatVerticalLabel, getVerticalColor } from '@/lib/verticals'
+import { todayInTimezone } from '@/lib/timezone'
 
 async function getStats() {
   const supabase = await createClient()
@@ -43,7 +44,11 @@ async function getTasks() {
 
 async function getReminders() {
   const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
+  const { data: { user: remUser } } = await supabase.auth.getUser()
+  const { data: remProfile } = remUser
+    ? await supabase.from('profiles').select('timezone').eq('id', remUser.id).single()
+    : { data: null }
+  const today = todayInTimezone(remProfile?.timezone || 'America/New_York')
   const twoWeeks = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const { data } = await supabase
     .from('key_notes')

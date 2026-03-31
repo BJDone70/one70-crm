@@ -28,6 +28,7 @@ export default function DashboardBriefing() {
   const [items, setItems] = useState<BriefingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const router = useRouter()
 
   async function loadBriefing(force?: boolean) {
@@ -37,9 +38,11 @@ export default function DashboardBriefing() {
       try {
         const cached = localStorage.getItem('one70_briefing')
         const cachedWindow = localStorage.getItem('one70_briefing_window')
+        const cachedTime = localStorage.getItem('one70_briefing_updated')
         if (cached && cachedWindow && parseInt(cachedWindow) === currentWindow) {
           const parsedItems = JSON.parse(cached) as BriefingItem[]
           setItems(parsedItems)
+          if (cachedTime) setLastUpdated(cachedTime)
           setLoading(false)
           return
         }
@@ -50,9 +53,12 @@ export default function DashboardBriefing() {
       const res = await fetch('/api/briefing')
       if (res.ok) {
         const data = await res.json()
+        const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
         setItems(data.items || [])
+        setLastUpdated(now)
         localStorage.setItem('one70_briefing', JSON.stringify(data.items || []))
         localStorage.setItem('one70_briefing_window', currentWindow.toString())
+        localStorage.setItem('one70_briefing_updated', now)
       }
     } catch {}
     setLoading(false)
@@ -96,7 +102,7 @@ export default function DashboardBriefing() {
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-one70-yellow" />
           <span className="text-sm font-bold text-one70-black">Today's Briefing</span>
-          <span className="text-[10px] text-gray-400 ml-1">Updated 3x daily</span>
+          <span className="text-[10px] text-gray-400 ml-1">{lastUpdated ? `Updated ${lastUpdated}` : 'Updated 3x daily'}</span>
         </div>
         <button
           onClick={handleRefresh}

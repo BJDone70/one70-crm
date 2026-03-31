@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import TasksList from './tasks-list'
+import { todayInTimezone } from '@/lib/timezone'
 
 interface SearchParams {
   status?: string
@@ -53,7 +54,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
     !t.is_private || t.assigned_to === user.id || t.created_by === user.id
   )
 
-  const today = new Date().toISOString().split('T')[0]
+  const { data: tzProf } = await supabase.from('profiles').select('timezone').eq('id', user.id).single()
+  const today = todayInTimezone(tzProf?.timezone || 'America/New_York')
   const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   // Parallelize remaining queries

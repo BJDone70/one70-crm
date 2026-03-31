@@ -14,10 +14,18 @@ import { getOrgRoleLabel } from '@/lib/org-roles'
 import Documents from '@/components/documents'
 import AdminDeleteButton from '@/components/admin-delete'
 import MobileSectionNav from '@/components/mobile-section-nav'
+import { formatInTimezone } from '@/lib/timezone'
 
 export default async function OrganizationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
+
+  // Get user timezone
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: tzProfile } = user
+    ? await supabase.from('profiles').select('timezone').eq('id', user.id).single()
+    : { data: null }
+  const userTz = tzProfile?.timezone || 'America/New_York'
 
   const { data: org } = await supabase.from('organizations').select('*').eq('id', id).single()
   if (!org) notFound()
@@ -196,7 +204,7 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
                       <span>{activityIcons[a.type] || '📋'}</span>
                       <span className="text-xs font-medium text-one70-dark capitalize">{a.type}</span>
                       <span className="text-xs text-one70-mid">
-                        {new Date(a.occurred_at).toLocaleDateString()}
+                        {formatInTimezone(a.occurred_at, userTz, { dateOnly: true })}
                       </span>
                     </div>
                     {a.subject && <p className="text-sm font-medium text-one70-black mt-0.5">{a.subject}</p>}

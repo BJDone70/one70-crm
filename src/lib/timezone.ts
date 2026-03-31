@@ -62,3 +62,24 @@ export function tomorrowInTimezone(timezone: string = 'America/New_York'): strin
   const get = (type: string) => parts.find(p => p.type === type)?.value || ''
   return `${get('year')}-${get('month')}-${get('day')}`
 }
+
+/**
+ * Format a timestamp for display in a specific timezone.
+ * Use this server-side instead of new Date(ts).toLocaleString() which uses UTC on Vercel.
+ */
+export function formatInTimezone(
+  timestamp: string | Date,
+  timezone: string = 'America/New_York',
+  options: { dateOnly?: boolean; timeOnly?: boolean } = {}
+): string {
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
+  if (isNaN(date.getTime())) return ''
+
+  if (options.timeOnly) {
+    return date.toLocaleTimeString('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' })
+  }
+  if (options.dateOnly) {
+    return date.toLocaleDateString('en-US', { timeZone: timezone, month: 'short', day: 'numeric', year: 'numeric' })
+  }
+  return date.toLocaleString('en-US', { timeZone: timezone, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+}

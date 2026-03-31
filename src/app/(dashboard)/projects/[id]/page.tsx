@@ -9,6 +9,7 @@ import ProjectStatusChanger from './project-status'
 import AdminDeleteButton from '@/components/admin-delete'
 import { getStageLabel, getStageColor, DEFAULT_PROJECT_STAGES, ProjectStage } from '@/lib/project-stages'
 import { formatVerticalLabel, getVerticalColor } from '@/lib/verticals'
+import { formatInTimezone } from '@/lib/timezone'
 const projectTypeLabels: Record<string, string> = { major_construction: 'Major Construction', renovation: 'Renovation' }
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +32,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       stages = stageData.map((s: any) => ({ id: s.name, label: s.label, color: s.color || 'bg-gray-100 text-gray-600', sort_order: s.sort_order, is_terminal: s.is_terminal }))
     }
   } catch {}
+
+  // Get user timezone
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: userProfile } = user
+    ? await supabase.from('profiles').select('timezone').eq('id', user.id).single()
+    : { data: null }
+  const userTz = userProfile?.timezone || 'America/New_York'
 
   // Parallelize all remaining queries
   const [repRes, activitiesRes, repsRes, docsRes, buildRes] = await Promise.all([
@@ -193,7 +201,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     <div className="flex-1 min-w-0">
                       {a.subject && <p className="text-sm font-medium text-gray-900">{a.subject}</p>}
                       {a.body && <p className="text-xs text-gray-500 line-clamp-2">{a.body}</p>}
-                      <p className="text-[10px] text-gray-400 mt-1">{new Date(a.occurred_at).toLocaleString()} · {nameMap[a.user_id] || 'Unknown'}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">{formatInTimezone(a.occurred_at, userTz)} · {nameMap[a.user_id] || 'Unknown'}</p>
                     </div>
                   </div>
                 ))}
@@ -212,7 +220,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
                 <span className="text-gray-500">Created</span>
-                <span className="ml-auto text-gray-400">{new Date(project.created_at).toLocaleDateString()}</span>
+                <span className="ml-auto text-gray-400">{formatInTimezone(project.created_at, userTz, { dateOnly: true })}</span>
               </div>
               {project.start_date && (
                 <div className="flex items-center gap-2">

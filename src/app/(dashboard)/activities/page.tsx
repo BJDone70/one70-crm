@@ -1,8 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { Activity } from 'lucide-react'
+import { formatInTimezone } from '@/lib/timezone'
 
 export default async function ActivitiesPage() {
   const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: userProfile } = user
+    ? await supabase.from('profiles').select('timezone').eq('id', user.id).single()
+    : { data: null }
+  const userTz = userProfile?.timezone || 'America/New_York'
 
   const { data: activities } = await supabase
     .from('activities')
@@ -39,7 +46,7 @@ export default async function ActivitiesPage() {
                   <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                     <span className="text-sm font-medium text-one70-black capitalize">{a.type}</span>
                     {a.direction && <span className="text-xs text-one70-mid">({a.direction})</span>}
-                    <span className="text-xs text-one70-mid">{new Date(a.occurred_at).toLocaleDateString()}</span>
+                    <span className="text-xs text-one70-mid">{formatInTimezone(a.occurred_at, userTz, { dateOnly: true })}</span>
                   </div>
                   {a.subject && <p className="text-sm font-medium text-one70-dark mt-0.5">{a.subject}</p>}
                   {a.body && <p className="text-sm text-one70-mid mt-0.5">{a.body}</p>}

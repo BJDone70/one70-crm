@@ -17,6 +17,7 @@ import DealDeleteButton from '@/components/deal-delete-button'
 import MobileSectionNav from '@/components/mobile-section-nav'
 import { PIPELINE_STAGES, WON_STAGE, LOST_STAGE } from '@/lib/stages'
 import { formatVerticalLabel, getVerticalColor } from '@/lib/verticals'
+import { formatInTimezone } from '@/lib/timezone'
 
 const STAGES = PIPELINE_STAGES
 
@@ -35,9 +36,10 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
   // Get current user's role
   const { data: { user } } = await supabase.auth.getUser()
   const { data: userProfile } = user
-    ? await supabase.from('profiles').select('role').eq('id', user.id).single()
+    ? await supabase.from('profiles').select('role, timezone').eq('id', user.id).single()
     : { data: null }
   const isAdmin = userProfile?.role === 'admin'
+  const userTz = userProfile?.timezone || 'America/New_York'
 
   // Parallelize all remaining queries
   const [repRes, activitiesRes, tasksRes, documentsRes, projectRes] = await Promise.all([
@@ -273,7 +275,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
                     <div className="flex items-center gap-2">
                       <span>{activityIcons[a.type] || '📋'}</span>
                       <span className="text-xs font-medium text-one70-dark capitalize">{a.type}</span>
-                      <span className="text-xs text-one70-mid">{new Date(a.occurred_at).toLocaleDateString()}</span>
+                      <span className="text-xs text-one70-mid">{formatInTimezone(a.occurred_at, userTz, { dateOnly: true })}</span>
                     </div>
                     {a.subject && <p className="text-sm font-medium text-one70-black mt-0.5">{a.subject}</p>}
                     {a.body && <p className="text-xs text-one70-mid mt-0.5 line-clamp-2">{a.body}</p>}
