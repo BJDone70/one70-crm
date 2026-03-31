@@ -34,7 +34,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   // Parallelize all remaining queries
   const [activitiesRes, keyNotesRes, tasksRes, referralsRes, documentsRes, referrerRes] = await Promise.all([
     supabase.from('activities').select('*').eq('contact_id', id).order('occurred_at', { ascending: false }).limit(20),
-    supabase.from('key_notes').select('*').eq('contact_id', id).order('created_at', { ascending: false }),
+    supabase.from('key_notes').select('*').eq('contact_id', id).order('created_at', { ascending: false }).limit(100),
     supabase.from('tasks').select('*').eq('contact_id', id).eq('status', 'pending').order('due_date', { ascending: true }),
     supabase.from('contacts').select('id, first_name, last_name, title').is('deleted_at', null).eq('referred_by', id),
     supabase.from('documents').select('*').eq('record_type', 'contact').eq('record_id', id).order('created_at', { ascending: false }),

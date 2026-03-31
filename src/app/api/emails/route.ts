@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     source: 'manual',
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
 
   return NextResponse.json({ interaction: data })
 }
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query.limit(50)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
 
   return NextResponse.json({ interactions: data || [] })
 }
@@ -100,6 +100,6 @@ export async function PUT(request: Request) {
     .eq('id', id)
     .eq('user_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   return NextResponse.json({ success: true })
 }

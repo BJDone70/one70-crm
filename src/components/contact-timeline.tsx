@@ -42,15 +42,32 @@ export default function ContactTimeline({ contactId, orgId }: { contactId: strin
     async function load() {
       const allItems: TimelineItem[] = []
 
-      // 1. Activities (calls, emails, meetings, notes)
-      const { data: activities } = await supabase
-        .from('activities')
-        .select('id, type, subject, body, direction, occurred_at')
-        .eq('contact_id', contactId)
-        .order('occurred_at', { ascending: false })
-        .limit(50)
+      // Fetch all data sources in parallel
+      const [activitiesRes, emailsRes, meetingsRes, tasksRes] = await Promise.all([
+        supabase.from('activities')
+          .select('id, type, subject, body, direction, occurred_at')
+          .eq('contact_id', contactId)
+          .order('occurred_at', { ascending: false })
+          .limit(50),
+        supabase.from('email_interactions')
+          .select('id, subject, snippet, direction, from_email, received_at')
+          .eq('contact_id', contactId)
+          .order('received_at', { ascending: false })
+          .limit(30),
+        supabase.from('meeting_tracking')
+          .select('id, subject, meeting_date, location, attendees, notes')
+          .eq('contact_id', contactId)
+          .order('meeting_date', { ascending: false })
+          .limit(20),
+        supabase.from('tasks')
+          .select('id, title, status, type, completed_at, created_at')
+          .eq('contact_id', contactId)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ])
 
-      for (const a of activities || []) {
+      for (const a of activitiesRes.data || []) {
         allItems.push({
           id: `act-${a.id}`, type: 'activity', icon: a.type || 'note',
           title: a.subject, body: a.body, date: a.occurred_at,
@@ -58,15 +75,7 @@ export default function ContactTimeline({ contactId, orgId }: { contactId: strin
         })
       }
 
-      // 2. Email interactions
-      const { data: emails } = await supabase
-        .from('email_interactions')
-        .select('id, subject, snippet, direction, from_email, received_at')
-        .eq('contact_id', contactId)
-        .order('received_at', { ascending: false })
-        .limit(30)
-
-      for (const e of emails || []) {
+      for (const e of emailsRes.data || []) {
         allItems.push({
           id: `email-${e.id}`, type: 'email', icon: 'email',
           title: `${e.direction === 'inbound' ? '← ' : '→ '}${e.subject}`,
@@ -75,15 +84,7 @@ export default function ContactTimeline({ contactId, orgId }: { contactId: strin
         })
       }
 
-      // 3. Meetings
-      const { data: meetings } = await supabase
-        .from('meeting_tracking')
-        .select('id, subject, meeting_date, location, attendees, notes')
-        .eq('contact_id', contactId)
-        .order('meeting_date', { ascending: false })
-        .limit(20)
-
-      for (const m of meetings || []) {
+      for (const m of meetingsRes.data || []) {
         allItems.push({
           id: `meet-${m.id}`, type: 'meeting', icon: 'meeting',
           title: m.subject, body: [m.location, m.attendees].filter(Boolean).join(' · '),
@@ -91,16 +92,7 @@ export default function ContactTimeline({ contactId, orgId }: { contactId: strin
         })
       }
 
-      // 4. Tasks
-      const { data: tasks } = await supabase
-        .from('tasks')
-        .select('id, title, status, type, completed_at, created_at')
-        .eq('contact_id', contactId)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-      for (const t of tasks || []) {
+      for (const t of tasksRes.data || []) {
         allItems.push({
           id: `task-${t.id}`, type: 'task', icon: 'task',
           title: `${t.status === 'completed' ? '✓ ' : '○ '}${t.title}`,

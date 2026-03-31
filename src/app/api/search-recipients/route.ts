@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeSearchTerm } from '@/lib/sanitize'
 
 export const runtime = 'nodejs'
 
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     const { data: contacts } = await supabase
       .from('contacts')
       .select('first_name, last_name, email, organizations(name)')
-      .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%`)
+      .or(`first_name.ilike.%${sanitizeSearchTerm(q)}%,last_name.ilike.%${sanitizeSearchTerm(q)}%,email.ilike.%${sanitizeSearchTerm(q)}%`)
       .not('email', 'is', null)
       .is('deleted_at', null)
       .limit(8)

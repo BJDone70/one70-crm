@@ -1,13 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { todayInTimezone, tomorrowInTimezone, nowInTimezone } from '@/lib/timezone'
+import { sanitizeSearchTerm } from '@/lib/sanitize'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 // Smart fuzzy search helper — splits query into words, matches across fields
 function buildFuzzyFilter(query: string, fields: string[]): string {
-  const words = query.trim().split(/\s+/).filter(w => w.length > 1)
+  const words = query.trim().split(/\s+/).filter(w => w.length > 1).map(w => sanitizeSearchTerm(w))
   if (words.length === 0) return ''
   // Each word must match at least one field
   const conditions = words.map(word => {
@@ -231,8 +232,8 @@ async function resolveContact(name: string, supabase: any): Promise<{ id: string
   if (words.length >= 2) {
     const { data } = await supabase.from('contacts')
       .select('id, first_name, last_name')
-      .ilike('first_name', `%${words[0]}%`)
-      .ilike('last_name', `%${words[words.length - 1]}%`)
+      .ilike('first_name', `%${sanitizeSearchTerm(words[0])}%`)
+      .ilike('last_name', `%${sanitizeSearchTerm(words[words.length - 1])}%`)
       .is('deleted_at', null).limit(1)
     if (data?.[0]) return { id: data[0].id, name: `${data[0].first_name} ${data[0].last_name}` }
   }
@@ -242,14 +243,14 @@ async function resolveContact(name: string, supabase: any): Promise<{ id: string
     if (word.length < 2) continue
     const { data } = await supabase.from('contacts')
       .select('id, first_name, last_name')
-      .or(`first_name.ilike.%${word}%,last_name.ilike.%${word}%`)
+      .or(`first_name.ilike.%${sanitizeSearchTerm(word)}%,last_name.ilike.%${sanitizeSearchTerm(word)}%`)
       .is('deleted_at', null).limit(3)
     if (data?.length === 1) return { id: data[0].id, name: `${data[0].first_name} ${data[0].last_name}` }
   }
 
   // Strategy 3: Search by company name
   const { data: orgMatch } = await supabase.from('organizations')
-    .select('id').ilike('name', `%${name}%`).is('deleted_at', null).limit(1)
+    .select('id').ilike('name', `%${sanitizeSearchTerm(name)}%`).is('deleted_at', null).limit(1)
   if (orgMatch?.[0]) {
     const { data: contactByOrg } = await supabase.from('contacts')
       .select('id, first_name, last_name')
@@ -267,14 +268,14 @@ async function resolveOrg(name: string, supabase: any): Promise<{ id: string; na
 
   // Strategy 1: Direct ilike
   const { data } = await supabase.from('organizations')
-    .select('id, name').ilike('name', `%${name}%`).is('deleted_at', null).limit(1)
+    .select('id, name').ilike('name', `%${sanitizeSearchTerm(name)}%`).is('deleted_at', null).limit(1)
   if (data?.[0]) return { id: data[0].id, name: data[0].name }
 
   // Strategy 2: Each word
   for (const word of words) {
     if (word.length < 3) continue
     const { data: d } = await supabase.from('organizations')
-      .select('id, name').ilike('name', `%${word}%`).is('deleted_at', null).limit(3)
+      .select('id, name').ilike('name', `%${sanitizeSearchTerm(word)}%`).is('deleted_at', null).limit(3)
     if (d?.length === 1) return { id: d[0].id, name: d[0].name }
   }
 
@@ -292,7 +293,7 @@ async function executeTool(toolName: string, input: any, userId: string, supabas
   switch (toolName) {
     case 'search_contacts': {
       const q = input.query?.trim() || ''
-      const words = q.split(/\s+/).filter((w: string) => w.length > 1)
+      const words = q.split(/\s+/).filter((w: string) => w.length > 1).map((w: string) => sanitizeSearchTerm(w))
 
       // Search across all relevant fields with each word
       let allResults: any[] = []
@@ -307,7 +308,7 @@ async function executeTool(toolName: string, input: any, userId: string, supabas
       // Also search by organization name
       if (q) {
         const { data: orgs } = await supabase.from('organizations')
-          .select('id').ilike('name', `%${q}%`).is('deleted_at', null).limit(5)
+          .select('id').ilike('name', `%${sanitizeSearchTerm(q)}%`).is('deleted_at', null).limit(5)
         if (orgs?.length) {
           const orgIds = orgs.map((o: any) => o.id)
           const { data: orgContacts } = await supabase.from('contacts')
@@ -342,7 +343,7 @@ async function executeTool(toolName: string, input: any, userId: string, supabas
       if (input.stage) query = query.eq('stage', input.stage)
       if (input.vertical) query = query.eq('vertical', input.vertical)
       if (input.query) {
-        const words = input.query.split(/\s+/).filter((w: string) => w.length > 1)
+        const words = input.query.split(/\s+/).filter((w: string) => w.length > 1).map((w: string) => sanitizeSearchTerm(w))
         if (words[0]) query = query.or(`name.ilike.%${words[0]}%`)
       }
       const { data } = await query.order('updated_at', { ascending: false }).limit(10)
@@ -351,7 +352,7 @@ async function executeTool(toolName: string, input: any, userId: string, supabas
 
     case 'search_organizations': {
       const q = input.query?.trim() || ''
-      const words = q.split(/\s+/).filter((w: string) => w.length > 1)
+      const words = q.split(/\s+/).filter((w: string) => w.length > 1).map((w: string) => sanitizeSearchTerm(w))
       let allResults: any[] = []
 
       for (const word of words.slice(0, 3)) {
@@ -397,7 +398,7 @@ async function executeTool(toolName: string, input: any, userId: string, supabas
     }
 
     case 'move_deal_stage': {
-      const words = (input.deal_name || '').split(/\s+/).filter((w: string) => w.length > 1)
+      const words = (input.deal_name || '').split(/\s+/).filter((w: string) => w.length > 1).map((w: string) => sanitizeSearchTerm(w))
       let dealQuery = supabase.from('deals').select('id, name, stage').is('deleted_at', null)
       if (words[0]) dealQuery = dealQuery.ilike('name', `%${words[0]}%`)
       const { data: deals } = await dealQuery.limit(5)
@@ -481,7 +482,7 @@ async function executeTool(toolName: string, input: any, userId: string, supabas
       let query = supabase.from('projects')
         .select('id, name, status, vertical, project_type, contract_value, percent_complete')
       if (input.query) {
-        const words = input.query.split(/\s+/).filter((w: string) => w.length > 1)
+        const words = input.query.split(/\s+/).filter((w: string) => w.length > 1).map((w: string) => sanitizeSearchTerm(w))
         if (words[0]) query = query.ilike('name', `%${words[0]}%`)
       }
       const { data } = await query.order('name').limit(10)

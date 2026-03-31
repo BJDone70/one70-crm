@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     if (!deal_id || !new_stage || !user_id) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 
     // Get deal info
-    const { data: deal } = await supabaseAdmin.from('deals').select('name, value, assigned_to, org_id').eq('id', deal_id).single()
+    const { data: deal } = await supabaseAdmin.from('deals').select('name, value, assigned_to, org_id').eq('id', deal_id).is('deleted_at', null).single()
     if (!deal) return NextResponse.json({ error: 'Deal not found' }, { status: 404 })
 
     // Get changer's name
@@ -38,6 +38,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

@@ -93,6 +93,6 @@ Return ONLY the JSON.`
       return NextResponse.json({ error: 'Failed to parse the notes. Try adding more detail.' }, { status: 422 })
     }
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

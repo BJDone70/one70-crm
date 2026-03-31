@@ -223,6 +223,6 @@ Rules:
     return NextResponse.json({ success: true, created })
   } catch (err: any) {
     console.error('Email ingest error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

@@ -13,7 +13,10 @@ export async function POST(request: Request) {
     const { text, secret } = await request.json()
 
     // Verify shared secret
-    const expectedSecret = process.env.SHARE_EXTENSION_SECRET || 'one70-share-2024'
+    const expectedSecret = process.env.SHARE_EXTENSION_SECRET
+    if (!expectedSecret) {
+      return NextResponse.json({ error: 'Share extension not configured' }, { status: 500 })
+    }
     if (secret !== expectedSecret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -54,6 +57,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, queued: true })
   } catch (err: any) {
     console.error('Share receive error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

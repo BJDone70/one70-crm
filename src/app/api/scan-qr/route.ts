@@ -113,6 +113,6 @@ Leave any field as empty string if not found. For phone, include the full number
       return NextResponse.json({ error: 'Could not extract contact information from this page' }, { status: 422 })
     }
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to process QR code' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to process QR code' }, { status: 500 })
   }
 }

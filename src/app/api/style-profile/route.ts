@@ -115,6 +115,6 @@ Write this as a concise instruction that could be given to an AI to mimic their 
 
     return NextResponse.json({ success: true, profile: styleProfile, samples: samples.length })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

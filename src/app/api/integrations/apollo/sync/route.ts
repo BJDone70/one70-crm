@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ imported, skipped, total: people.length })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }
 

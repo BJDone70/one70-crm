@@ -97,6 +97,6 @@ Leave any field as empty string if not found. For phone, include the full number
     }
   } catch (error: any) {
     console.error('Scan error:', error)
-    return NextResponse.json({ error: error.message || 'Failed to scan card' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to scan card' }, { status: 500 })
   }
 }

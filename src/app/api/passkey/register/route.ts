@@ -54,6 +54,6 @@ export async function POST() {
     return NextResponse.json(options)
   } catch (error: any) {
     console.error('Registration options error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

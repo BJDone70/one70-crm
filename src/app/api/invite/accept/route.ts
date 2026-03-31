@@ -104,6 +104,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, message: 'Account created successfully' })
   } catch (error: any) {
     console.error('Accept invite error:', error)
-    return NextResponse.json({ error: error.message || 'Failed to create account' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create account' }, { status: 500 })
   }
 }

@@ -20,15 +20,15 @@ export async function POST(request: Request) {
     let contact = null, org = null, deal = null, activities: any[] = [], properties: any[] = [], keyNotes: any[] = []
 
     if (contactId) {
-      const { data } = await supabase.from('contacts').select('*').eq('id', contactId).single()
+      const { data } = await supabase.from('contacts').select('*').eq('id', contactId).is('deleted_at', null).single()
       contact = data
     }
     if (orgId) {
-      const { data } = await supabase.from('organizations').select('*').eq('id', orgId).single()
+      const { data } = await supabase.from('organizations').select('*').eq('id', orgId).is('deleted_at', null).single()
       org = data
     }
     if (dealId) {
-      const { data } = await supabase.from('deals').select('*').eq('id', dealId).single()
+      const { data } = await supabase.from('deals').select('*').eq('id', dealId).is('deleted_at', null).single()
       deal = data
     }
 
@@ -108,6 +108,6 @@ FORMAT THE BRIEF AS:
 
     return NextResponse.json({ success: true, brief })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

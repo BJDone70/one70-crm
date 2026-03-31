@@ -35,7 +35,14 @@ async function matchAttendees(attendees: any[]): Promise<{ id: string; name: str
   return null
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Verify this is from Vercel Cron or has the secret
+  const authHeader = request.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const clientId = process.env.M365_CLIENT_ID
   if (!clientId) return NextResponse.json({ error: 'M365 not configured' })
 
@@ -244,6 +251,6 @@ export async function GET() {
     return NextResponse.json({ success: true, synced: results })
   } catch (err: any) {
     console.error('M365 sync cron error:', err)
-    return NextResponse.json({ error: err.message })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     created_by: user.id,
   }).select('id').single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
 
   // Log activity
   await supabase.from('activities').insert({
