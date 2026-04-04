@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   )
 
   const { error } = await admin.auth.admin.updateUserById(user_id, { password: new_password })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
 
   return NextResponse.json({ success: true })
 }

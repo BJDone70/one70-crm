@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 import { rateLimitByIp } from '@/lib/rate-limit'
+import { sanitizeSearchTerm } from '@/lib/sanitize'
 
 export async function GET(request: Request) {
   try {
@@ -19,9 +20,10 @@ export async function GET(request: Request) {
     if (!q || q.length < 2) return NextResponse.json({ results: [] })
 
     // Multi-word: split into words, search with first word, score with all words
-    const words = q.split(/\s+/).filter(w => w.length > 1)
+    const words = q.split(/\s+/).filter(w => w.length > 1).map(w => sanitizeSearchTerm(w))
+    if (words.length === 0) return NextResponse.json({ results: [] })
     const pattern = `%${words[0]}%`
-    const fullPattern = `%${q}%`
+    const fullPattern = `%${sanitizeSearchTerm(q)}%`
 
     const [orgs, contacts, deals, properties, projects, tasks, activities, emails] = await Promise.all([
       supabase.from('organizations')
@@ -160,6 +162,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ results: allResults.slice(0, 20) })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

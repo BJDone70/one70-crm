@@ -28,10 +28,10 @@ export async function POST(request: Request) {
       .eq('id', inviteId)
       .eq('status', 'pending')
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

@@ -88,6 +88,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, message: `Invitation sent to ${email}` })
   } catch (error: any) {
     console.error('Invite error:', error)
-    return NextResponse.json({ error: error.message || 'Failed to send invitation' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to send invitation' }, { status: 500 })
   }
 }

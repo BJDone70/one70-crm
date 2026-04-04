@@ -28,6 +28,15 @@ export async function POST(request: Request) {
   const { to, cc, subject, body, contact_id, org_id, deal_id } = await request.json()
   if (!to?.length || !subject) return NextResponse.json({ error: 'Recipient and subject required' }, { status: 400 })
 
+  // Validate email addresses
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const allRecipients = [...(Array.isArray(to) ? to : [to]), ...(cc ? (Array.isArray(cc) ? cc : [cc]) : [])]
+  for (const email of allRecipients) {
+    if (!emailRegex.test(email) || /[\r\n]/.test(email)) {
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
+    }
+  }
+
   try {
     await sendEmail(user.id, Array.isArray(to) ? to : [to], subject, body || '', cc ? (Array.isArray(cc) ? cc : [cc]) : undefined)
 
@@ -63,6 +72,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('Send email error:', err)
-    return NextResponse.json({ error: err.message || 'Failed to send email' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
   }
 }

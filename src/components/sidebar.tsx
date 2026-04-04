@@ -204,7 +204,7 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
       <div className="border-t border-white/10 p-3 shrink-0">
         <div className="mb-2 px-1">
           <p className="text-sm font-medium text-white truncate">{userName}</p>
-          <p className="text-xs text-one70-mid capitalize">{userRole}</p>
+          <p className="text-xs text-one70-mid capitalize">{userRole === 'pm' ? 'Project Manager' : userRole.replace(/_/g, ' ')}</p>
         </div>
         <button
           onClick={handleLogout}

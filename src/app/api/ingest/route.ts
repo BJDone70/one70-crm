@@ -136,7 +136,7 @@ Rules:
     return NextResponse.json({ success: true, parsed: enriched })
   } catch (err: any) {
     console.error('Ingest error:', err)
-    return NextResponse.json({ error: err.message || 'Processing failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
   }
 }
 

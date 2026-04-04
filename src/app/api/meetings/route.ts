@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     source: 'manual',
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   return NextResponse.json({ meeting: data })
 }
 
@@ -69,6 +69,6 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query.limit(50)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   return NextResponse.json({ meetings: data || [] })
 }

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!dealId) return NextResponse.json({ error: 'Deal ID required' }, { status: 400 })
 
     // Load deal with all related data
-    const { data: deal } = await supabase.from('deals').select('*').eq('id', dealId).single()
+    const { data: deal } = await supabase.from('deals').select('*').eq('id', dealId).is('deleted_at', null).single()
     if (!deal) return NextResponse.json({ error: 'Deal not found' }, { status: 404 })
 
     let contact = null, org = null, activities: any[] = [], tasks: any[] = []
@@ -128,6 +128,6 @@ Keep it direct and actionable. No fluff.`
 
     return NextResponse.json({ success: true, coaching })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

@@ -171,6 +171,6 @@ export async function GET(request: Request) {
     })
   } catch (err: any) {
     console.error('Email monitor cron error:', err)
-    return NextResponse.json({ error: err.message })
+    return NextResponse.json({ error: 'An unexpected error occurred' })
   }
 }

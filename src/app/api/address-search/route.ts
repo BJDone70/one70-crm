@@ -67,6 +67,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ results })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
   }
 }

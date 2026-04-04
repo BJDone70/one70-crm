@@ -87,6 +87,7 @@ export default function AddTaskForm({ contactId, orgId, dealId, compact }: AddTa
     setForm({ title: '', description: '', type: 'follow_up', priority: 'normal', due_date: '', due_time: '', assigned_to: currentUserId })
     setOpen(false)
     setSaving(false)
+    window.dispatchEvent(new Event('timeline-refresh'))
     router.refresh()
   }
 

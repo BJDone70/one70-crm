@@ -88,7 +88,12 @@ function InviteForm() {
     }
   }
 
-  const roleLabel = inviteRole === 'admin' ? 'Admin' : inviteRole === 'rep' ? 'Sales Rep' : 'Viewer'
+  const roleLabels: Record<string, string> = {
+    admin: 'Admin', rep: 'Sales Rep', viewer: 'Viewer',
+    pm: 'Project Manager', superintendent: 'Superintendent',
+    estimator: 'Estimator', foreman: 'Foreman', exec: 'Executive',
+  }
+  const roleLabel = roleLabels[inviteRole] || inviteRole.charAt(0).toUpperCase() + inviteRole.slice(1).replace(/_/g, ' ')
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#1A1A1A' }}>

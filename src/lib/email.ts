@@ -15,7 +15,12 @@ export async function sendInviteEmail({
   role: string
   inviteUrl: string
 }) {
-  const roleLabel = role === 'admin' ? 'Admin' : role === 'rep' ? 'Sales Rep' : 'Viewer'
+  const roleLabels: Record<string, string> = {
+    admin: 'Admin', rep: 'Sales Rep', viewer: 'Viewer',
+    pm: 'Project Manager', superintendent: 'Superintendent',
+    estimator: 'Estimator', foreman: 'Foreman', exec: 'Executive',
+  }
+  const roleLabel = roleLabels[role] || role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ')
 
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,

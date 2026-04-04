@@ -68,6 +68,7 @@ export default function KeyNotes({ contactId, notes }: KeyNotesProps) {
     setForm({ category: 'preference', title: '', note: '', reminder_date: '', reminder_recurring: false })
     setAdding(false)
     setSaving(false)
+    window.dispatchEvent(new Event('timeline-refresh'))
     router.refresh()
   }
 
