@@ -212,6 +212,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-one70-black flex items-center justify-center px-4">
       <div className="w-full max-w-md">
+        {/* Migration banner */}
+        <div className="bg-amber-500 text-black rounded-lg px-4 py-3 mb-6 text-center shadow-md">
+          <p className="text-sm font-bold">
+            This platform has been retired. All data has been migrated to the new platform and will not be synced moving forward.
+          </p>
+          <p className="text-xs mt-0.5">
+            Contact Ben Diamond for any access issues to the new platform.
+          </p>
+        </div>
         {/* Logo */}
         <div className="text-center mb-8">
           <img src="/logo-white.png" alt="ONE70 Group" className="h-16 w-auto mx-auto" />

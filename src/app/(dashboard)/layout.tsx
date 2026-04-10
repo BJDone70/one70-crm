@@ -38,10 +38,19 @@ export default async function DashboardLayout({
     <Providers>
     <div className="min-h-screen bg-one70-gray">
       <TeamsInit />
-      <div className="sidebar-container">
+      {/* Migration banner */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-black px-4 py-3 text-center shadow-md">
+        <p className="text-sm font-bold">
+          This platform has been retired. All data has been migrated to the new platform and will not be synced moving forward.
+        </p>
+        <p className="text-xs mt-0.5">
+          Contact Ben Diamond for any access issues to the new platform.
+        </p>
+      </div>
+      <div className="sidebar-container pt-[68px]">
         <Sidebar userRole={profile.role} userName={profile.full_name} />
       </div>
-      <main className="main-with-sidebar lg:ml-64 min-h-screen lg:pt-0">
+      <main className="main-with-sidebar lg:ml-64 min-h-screen lg:pt-0 pt-[68px]">
         <div className="px-3 pt-1 pb-20 lg:px-6 lg:pt-6 lg:pb-6">
           {children}
         </div>
