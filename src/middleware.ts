@@ -37,7 +37,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api/passkey/authenticate') ||
     request.nextUrl.pathname.startsWith('/api/cron') ||
     request.nextUrl.pathname.startsWith('/api/m365/callback') ||
-    request.nextUrl.pathname.startsWith('/teams/config')
+    request.nextUrl.pathname.startsWith('/teams/config') ||
+    request.nextUrl.pathname === '/tools/weekly-update.html'
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
