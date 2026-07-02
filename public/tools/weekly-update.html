@@ -299,11 +299,11 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer
         <div class="sec-head"><span class="sec-title">Decisions / Input needed from client</span></div>
         <div class="decisions-body">
           <div class="decisions-toggle">
-            <div class="dec-cb-item" onclick="setDecisions('yes')">
+            <div class="dec-cb-item" onclick="setDecisions('yes'); scheduleAutosave()">
               <div class="dec-cb-box" id="dec-yes-box"><span style="color:#F5C518;font-size:10px;display:none">✓</span></div>
               <span class="dec-cb-label">Yes — decisions required</span>
             </div>
-            <div class="dec-cb-item" onclick="setDecisions('no')">
+            <div class="dec-cb-item" onclick="setDecisions('no'); scheduleAutosave()">
               <div class="dec-cb-box checked" id="dec-no-box"><span style="color:#F5C518;font-size:10px;">✓</span></div>
               <span class="dec-cb-label">No</span>
             </div>
@@ -521,6 +521,8 @@ function renderHistory() {
 document.getElementById('newUpdateBtn').addEventListener('click', startNewUpdate);
 
 function startNewUpdate() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
   currentUpdateId = null;
   currentUpdateNum = (historyCache[0] ? historyCache[0].update_number : 0) + 1;
   viewingReadOnly = false;
@@ -549,6 +551,8 @@ function startNewUpdate() {
 }
 
 async function loadUpdate(updateId, carryForwardOnly) {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
   try {
     const rows = await sbGet('/wu_updates?id=eq.' + updateId + '&select=*');
     const d = rows[0];
@@ -642,10 +646,17 @@ async function loadUpdate(updateId, carryForwardOnly) {
 
 document.getElementById('savePdfBtn'); // exists, handler bound inline via onclick=savePDF()
 
-async function saveToSupabase() {
-  if (!currentProjectId) return;
+let saveInFlight = false;
+let autosaveTimer = null;
+
+async function performSave(opts) {
+  const silent = !!(opts && opts.silent);
+  if (!currentProjectId || viewingReadOnly || saveInFlight) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  saveInFlight = true;
   try {
-    setSync('saving', 'Saving…');
+    setSync('saving', silent ? 'Saving draft…' : 'Saving…');
 
     const payload = {
       project_id: currentProjectId,
@@ -669,23 +680,34 @@ async function saveToSupabase() {
     if (currentUpdateId) {
       // Only the latest update is ever editable (enforced in UI), so PATCH is safe
       await sbPatch('wu_updates', 'id=eq.' + currentUpdateId, payload);
-      showToast('Update #' + currentUpdateNum + ' saved');
+      if (!silent) showToast('Update #' + currentUpdateNum + ' saved');
     } else {
       // update_number is assigned server-side by trigger
       const created = await sbPost('wu_updates', payload, true);
       currentUpdateId = created[0].id;
       currentUpdateNum = created[0].update_number;
       document.getElementById('updateNumDisplay').textContent = currentUpdateNum;
-      showToast('Update #' + currentUpdateNum + ' created');
+      if (!silent) showToast('Update #' + currentUpdateNum + ' created');
     }
 
-    setSync('ok', 'Saved');
+    setSync('ok', silent ? 'Draft saved' : 'Saved');
     await loadHistory();
   } catch (e) {
     console.error(e);
     setSync('error', 'Save failed');
-    showToast('Save failed — check connection and try again', true);
+    if (!silent) showToast('Save failed — check connection and try again', true);
+  } finally {
+    saveInFlight = false;
   }
+}
+
+async function saveToSupabase() { return performSave({ silent: false }); }
+
+// Debounced autosave — fires ~1.5s after the user stops editing a draft/latest update.
+function scheduleAutosave() {
+  if (!currentProjectId || viewingReadOnly) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(function () { performSave({ silent: true }); }, 1500);
 }
 
 function clampPct(n) { if (n < 0) return 0; if (n > 100) return 100; return n; }
@@ -726,7 +748,7 @@ function addAcc(item, delivered, note) {
     '<option value="partial"' + (dv === 'partial' ? ' selected' : '') + '>~ Partial</option>' +
     '</select></td>' +
     '<td><input type="text" placeholder="Brief note..." data-field="note" value="' + escapeHtml(note || '') + '"></td>' +
-    '<td><button class="remove-btn" onclick="this.closest(&quot;tr&quot;).remove()">×</button></td>';
+    '<td><button class="remove-btn" onclick="removeRow(this)">×</button></td>';
   tbody.appendChild(tr);
 }
 function updateDelStyle(sel) {
@@ -739,7 +761,7 @@ function addLook(item, start) {
   tr.innerHTML = '<td class="dot-cell"><span class="dot"></span></td>' +
     '<td><input type="text" placeholder="Planned activity..." data-field="item" value="' + escapeHtml(item || '') + '"></td>' +
     '<td><input type="date" data-field="start" value="' + (start || '') + '"></td>' +
-    '<td><button class="remove-btn" onclick="this.closest(&quot;tr&quot;).remove()">×</button></td>';
+    '<td><button class="remove-btn" onclick="removeRow(this)">×</button></td>';
   tbody.appendChild(tr);
 }
 
@@ -751,7 +773,7 @@ function addOpen(item, action, owner, due) {
     '<td><input type="text" placeholder="Action being taken..." data-field="action" value="' + escapeHtml(action || '') + '"></td>' +
     '<td><input type="text" placeholder="Owner" data-field="owner" value="' + escapeHtml(owner || '') + '"></td>' +
     '<td><input type="date" data-field="due" value="' + (due || '') + '"></td>' +
-    '<td><button class="remove-btn" onclick="this.closest(&quot;tr&quot;).remove()">×</button></td>';
+    '<td><button class="remove-btn" onclick="removeRow(this)">×</button></td>';
   tbody.appendChild(tr);
 }
 
@@ -762,7 +784,7 @@ function addDec(decision, owner, due) {
     '<td><input type="text" placeholder="Decision needed..." data-field="decision" value="' + escapeHtml(decision || '') + '"></td>' +
     '<td><input type="text" placeholder="Owner" data-field="owner" value="' + escapeHtml(owner || '') + '"></td>' +
     '<td><input type="date" data-field="due" value="' + (due || '') + '"></td>' +
-    '<td><button class="remove-btn" onclick="this.closest(&quot;tr&quot;).remove()">×</button></td>';
+    '<td><button class="remove-btn" onclick="removeRow(this)">×</button></td>';
   tbody.appendChild(tr);
 }
 
@@ -777,6 +799,11 @@ function getRows(id) {
     rows.push(obj);
   });
   return rows;
+}
+
+function removeRow(btn) {
+  btn.closest('tr').remove();
+  scheduleAutosave();
 }
 
 function clearForm() {
@@ -795,7 +822,11 @@ function seedBlanks() {
 
 /* ---------------- PDF (client-side, unchanged logic from original template) ---------------- */
 
-function savePDF() {
+async function savePDF() {
+  // Persist the current draft/update before exporting, so the downloaded
+  // PDF always matches what's saved to the project.
+  if (currentProjectId && !viewingReadOnly) await performSave({ silent: true });
+
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({ unit: 'pt', format: 'letter' });
   var PW = 612, mg = 28, cw = PW - 2 * mg, y = mg;
@@ -962,6 +993,30 @@ function savePDF() {
   showToast('PDF saved');
 }
 
+/* ---------------- Autosave wiring ---------------- */
+
+// Any real user edit inside the form schedules an autosave. Programmatic
+// value-setting (carry-forward, loading a past update) doesn't fire these
+// DOM events, so it never triggers a spurious save.
+var pageEl = document.getElementById('page');
+pageEl.addEventListener('input', function () { scheduleAutosave(); });
+pageEl.addEventListener('change', function () { scheduleAutosave(); });
+
+// Warn before closing/navigating away with an unsaved autosave pending.
+window.addEventListener('beforeunload', function (e) {
+  if (autosaveTimer) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+/* ---------------- Boot ---------------- */
+window.addEventListener('load', function () {
+  loadProjects();
+});
+
+// Best-effort logo prefetch for the PDF export — kept last and fully
+// isolated so a failure here can never block the wiring above.
 var LOGO_B64 = null;
 (function loadLogoForPdf() {
   fetch('/logo-300.jpg').then(function (r) { return r.blob(); }).then(function (blob) {
@@ -970,9 +1025,4 @@ var LOGO_B64 = null;
     reader.readAsDataURL(blob);
   }).catch(function () { /* PDF still works without the logo image */ });
 })();
-
-/* ---------------- Boot ---------------- */
-window.addEventListener('load', function () {
-  loadProjects();
-});
 </script>
