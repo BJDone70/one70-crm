@@ -104,6 +104,8 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer
 .item-row td input::placeholder{color:#DDD}
 .item-row td input[type="date"]{font-size:11px;color:#555}
 .item-row td input[type="date"]::-webkit-calendar-picker-indicator{opacity:0.3;cursor:pointer;width:10px}
+.item-row td textarea{width:100%;border:none;outline:none;font-size:12px;color:#1A1A1A;font-family:inherit;background:transparent;padding:2px 0;resize:none;overflow:hidden;display:block;line-height:1.4}
+.item-row td textarea::placeholder{color:#DDD}
 .item-row td select{width:100%;border:none;outline:none;font-size:11px;font-family:inherit;background:transparent;color:#555;cursor:pointer}
 .remove-btn{background:none;border:none;cursor:pointer;color:#DDD;font-size:17px;line-height:1;padding:1px 4px;transition:color .15s;display:block;width:100%}
 .remove-btn:hover{color:#999}
@@ -608,6 +610,7 @@ async function loadUpdate(updateId, carryForwardOnly) {
     updateSchedule();
     document.getElementById('f_period').value = d.look_ahead_period || '';
     document.getElementById('f_comments').value = d.comments || '';
+    autoGrow(document.getElementById('f_comments'));
 
     document.getElementById('list_acc').innerHTML = '';
     (d.commitments || []).forEach(function (r) { addAcc(r.item, r.cvd_del, r.note); });
@@ -741,15 +744,16 @@ function addAcc(item, delivered, note) {
   var dv = delivered || 'yes';
   var cls = dv === 'yes' ? 'del-yes' : dv === 'no' ? 'del-no' : 'del-partial';
   tr.innerHTML =
-    '<td><input type="text" placeholder="What we committed to..." data-field="item" value="' + escapeHtml(item || '') + '"></td>' +
+    '<td><textarea rows="1" placeholder="What we committed to..." data-field="item">' + escapeHtml(item || '') + '</textarea></td>' +
     '<td style="white-space:nowrap"><select data-field="cvd_del" class="del-select ' + cls + '" onchange="updateDelStyle(this)">' +
     '<option value="yes"' + (dv === 'yes' ? ' selected' : '') + '>✓ Yes</option>' +
     '<option value="no"' + (dv === 'no' ? ' selected' : '') + '>✗ No</option>' +
     '<option value="partial"' + (dv === 'partial' ? ' selected' : '') + '>~ Partial</option>' +
     '</select></td>' +
-    '<td><input type="text" placeholder="Brief note..." data-field="note" value="' + escapeHtml(note || '') + '"></td>' +
+    '<td><textarea rows="1" placeholder="Brief note..." data-field="note">' + escapeHtml(note || '') + '</textarea></td>' +
     '<td><button class="remove-btn" onclick="removeRow(this)">×</button></td>';
   tbody.appendChild(tr);
+  growAll(tr);
 }
 function updateDelStyle(sel) {
   sel.className = 'del-select ' + (sel.value === 'yes' ? 'del-yes' : sel.value === 'no' ? 'del-no' : 'del-partial');
@@ -759,33 +763,36 @@ function addLook(item, start) {
   var tbody = document.getElementById('list_look');
   var tr = document.createElement('tr'); tr.className = 'item-row';
   tr.innerHTML = '<td class="dot-cell"><span class="dot"></span></td>' +
-    '<td><input type="text" placeholder="Planned activity..." data-field="item" value="' + escapeHtml(item || '') + '"></td>' +
+    '<td><textarea rows="1" placeholder="Planned activity..." data-field="item">' + escapeHtml(item || '') + '</textarea></td>' +
     '<td><input type="date" data-field="start" value="' + (start || '') + '"></td>' +
     '<td><button class="remove-btn" onclick="removeRow(this)">×</button></td>';
   tbody.appendChild(tr);
+  growAll(tr);
 }
 
 function addOpen(item, action, owner, due) {
   var tbody = document.getElementById('list_open');
   var tr = document.createElement('tr'); tr.className = 'item-row';
   tr.innerHTML = '<td class="dot-cell"><span class="dot"></span></td>' +
-    '<td><input type="text" placeholder="Issue..." data-field="item" value="' + escapeHtml(item || '') + '"></td>' +
-    '<td><input type="text" placeholder="Action being taken..." data-field="action" value="' + escapeHtml(action || '') + '"></td>' +
+    '<td><textarea rows="1" placeholder="Issue..." data-field="item">' + escapeHtml(item || '') + '</textarea></td>' +
+    '<td><textarea rows="1" placeholder="Action being taken..." data-field="action">' + escapeHtml(action || '') + '</textarea></td>' +
     '<td><input type="text" placeholder="Owner" data-field="owner" value="' + escapeHtml(owner || '') + '"></td>' +
     '<td><input type="date" data-field="due" value="' + (due || '') + '"></td>' +
     '<td><button class="remove-btn" onclick="removeRow(this)">×</button></td>';
   tbody.appendChild(tr);
+  growAll(tr);
 }
 
 function addDec(decision, owner, due) {
   var tbody = document.getElementById('list_dec');
   var tr = document.createElement('tr'); tr.className = 'item-row';
   tr.innerHTML = '<td class="dot-cell"><span class="dot dot-red"></span></td>' +
-    '<td><input type="text" placeholder="Decision needed..." data-field="decision" value="' + escapeHtml(decision || '') + '"></td>' +
+    '<td><textarea rows="1" placeholder="Decision needed..." data-field="decision">' + escapeHtml(decision || '') + '</textarea></td>' +
     '<td><input type="text" placeholder="Owner" data-field="owner" value="' + escapeHtml(owner || '') + '"></td>' +
     '<td><input type="date" data-field="due" value="' + (due || '') + '"></td>' +
     '<td><button class="remove-btn" onclick="removeRow(this)">×</button></td>';
   tbody.appendChild(tr);
+  growAll(tr);
 }
 
 function gv(id) { return (document.getElementById(id) || {}).value || ''; }
@@ -806,10 +813,21 @@ function removeRow(btn) {
   scheduleAutosave();
 }
 
+// Growing textareas: reset to 'auto' first so shrinking (e.g. after a
+// paste is undone) is picked up too, not just growth.
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+function growAll(container) {
+  container.querySelectorAll('textarea').forEach(autoGrow);
+}
+
 function clearForm() {
   ['list_acc', 'list_look', 'list_open', 'list_dec'].forEach(function (id) { document.getElementById(id).innerHTML = ''; });
   document.querySelectorAll('#page input:not(#projectSelect), #page textarea').forEach(function (el) { if (el.id !== 'f_project') el.value = ''; });
   document.getElementById('f_delta_dir').value = 'ahead';
+  autoGrow(document.getElementById('f_comments'));
   updateSchedule();
   setDecisions('no');
 }
@@ -896,23 +914,36 @@ async function savePDF() {
 
   var sech = 22;
 
+  // Rows can now hold multi-line text (the form's fields auto-grow), so each
+  // row's height is computed from its wrapped line count instead of a fixed
+  // value — otherwise wrapped text would overlap the next row.
   var validAcc = accRows.filter(function (r) { return r.item; });
   if (validAcc.length) {
     secHead('What We Committed To vs. What We Delivered', mg, y, cw, sech, null); y += sech;
     var cw1 = cw * 0.52, cw2 = 80, cw3 = cw - cw1 - cw2 - 18;
-    var ah = validAcc.length * 15 + 18; rr(mg, y, cw, ah, 5, WHITE, BORDER);
+    var accLH = 12, accBase = 15;
+    doc.setFontSize(9); doc.setFont('Helvetica', 'normal');
+    var accWrap = validAcc.map(function (r) {
+      var itemLines = doc.splitTextToSize(r.item || '', cw1 - 8);
+      var noteLines = doc.splitTextToSize(r.note || '', cw3 - 6);
+      var lines = Math.max(itemLines.length, noteLines.length, 1);
+      return { itemLines: itemLines, noteLines: noteLines, h: accBase + (lines - 1) * accLH };
+    });
+    var ah = accWrap.reduce(function (s, w) { return s + w.h; }, 0) + 18;
+    rr(mg, y, cw, ah, 5, WHITE, BORDER);
     colHdr(['Commitment', 'Delivered?', 'Note'], [cw1, cw2, cw3], mg + 4, y + 2);
     var ry = y + 18 + 10;
     validAcc.forEach(function (r, ri) {
+      var w = accWrap[ri];
       doc.setFontSize(9); doc.setFont('Helvetica', 'normal'); doc.setTextColor(BLACK);
-      doc.text(r.item || '', mg + 6, ry, { maxWidth: cw1 - 8 });
+      doc.text(w.itemLines, mg + 6, ry, { lineHeightFactor: accLH / 9 });
       var dv = r.cvd_del || 'yes';
       var dc = dv === 'yes' ? '#4CAF50' : dv === 'no' ? '#E53935' : '#1A1A1A';
       var dl = dv === 'yes' ? 'Yes' : dv === 'no' ? 'No' : 'Partial';
       doc.setTextColor(dc); doc.setFont('Helvetica', 'bold'); doc.text(dl, mg + cw1 + 8, ry);
-      doc.setTextColor('#555'); doc.setFont('Helvetica', 'normal'); doc.text(r.note || '', mg + cw1 + cw2 + 6, ry, { maxWidth: cw3 - 6 });
-      if (ri < validAcc.length - 1) rowLine(ry + 5);
-      ry += 15;
+      doc.setTextColor('#555'); doc.setFont('Helvetica', 'normal'); doc.text(w.noteLines, mg + cw1 + cw2 + 6, ry, { lineHeightFactor: accLH / 9 });
+      if (ri < validAcc.length - 1) rowLine(ry + w.h - accBase + 5);
+      ry += w.h;
     });
     y += ah + 7;
   }
@@ -920,15 +951,23 @@ async function savePDF() {
   var validLook = lookRows.filter(function (r) { return r.item; });
   if (validLook.length) {
     secHead('Two-Week Look Ahead', mg, y, cw, sech, period); y += sech;
-    var lw = cw - 18 - 110, lh2 = validLook.length * 14 + 18; rr(mg, y, cw, lh2, 5, WHITE, BORDER);
+    var lw = cw - 18 - 110, lookLH = 12, lookBase = 14;
+    doc.setFontSize(9); doc.setFont('Helvetica', 'normal');
+    var lookWrap = validLook.map(function (r) {
+      var itemLines = doc.splitTextToSize(r.item || '', lw - 8);
+      return { itemLines: itemLines, h: lookBase + (itemLines.length - 1) * lookLH };
+    });
+    var lh2 = lookWrap.reduce(function (s, w) { return s + w.h; }, 0) + 18;
+    rr(mg, y, cw, lh2, 5, WHITE, BORDER);
     colHdr(['Item', 'Exp. Start'], [lw, 110], mg + 4, y + 2);
     var ry = y + 18 + 10;
     validLook.forEach(function (r, ri) {
+      var w = lookWrap[ri];
       doc.setFillColor(YELLOW); doc.circle(mg + 9, ry - 3, 2.5, 'F');
-      doc.setFontSize(9); doc.setFont('Helvetica', 'normal'); doc.setTextColor(BLACK); doc.text(r.item || '', mg + 17, ry, { maxWidth: lw - 8 });
+      doc.setFontSize(9); doc.setFont('Helvetica', 'normal'); doc.setTextColor(BLACK); doc.text(w.itemLines, mg + 17, ry, { lineHeightFactor: lookLH / 9 });
       doc.setTextColor('#666'); doc.text(fmtDate(r.start) || '', mg + 17 + lw, ry);
-      if (ri < validLook.length - 1) rowLine(ry + 4);
-      ry += 14;
+      if (ri < validLook.length - 1) rowLine(ry + w.h - lookBase + 4);
+      ry += w.h;
     });
     y += lh2 + 7;
   }
@@ -937,18 +976,29 @@ async function savePDF() {
   if (validOpen.length) {
     secHead('Open Items — Actions Being Taken', mg, y, cw, sech, null); y += sech;
     var ow1 = cw * 0.27, ow2 = cw * 0.33, ow3 = 85, ow4 = cw - 18 - ow1 - ow2 - 85;
-    var oh = validOpen.length * 15 + 18; rr(mg, y, cw, oh, 5, WHITE, BORDER);
+    var openLH = 12, openBase = 15;
+    doc.setFontSize(8.5); doc.setFont('Helvetica', 'normal');
+    var openWrap = validOpen.map(function (r) {
+      var itemLines = doc.splitTextToSize(r.item || '', ow1 - 4);
+      var actionLines = doc.splitTextToSize(r.action || '', ow2 - 4);
+      var lines = Math.max(itemLines.length, actionLines.length, 1);
+      return { itemLines: itemLines, actionLines: actionLines, h: openBase + (lines - 1) * openLH };
+    });
+    var oh = openWrap.reduce(function (s, w) { return s + w.h; }, 0) + 18;
+    rr(mg, y, cw, oh, 5, WHITE, BORDER);
     colHdr(['Issue', 'Action Being Taken', 'Owner', 'Due'], [ow1, ow2, ow3, ow4], mg + 4, y + 2);
     var ry = y + 18 + 10;
     validOpen.forEach(function (r, ri) {
+      var w = openWrap[ri];
       doc.setFillColor(YELLOW); doc.circle(mg + 9, ry - 3, 2.5, 'F');
       var dx = mg + 17;
-      [[r.item, ow1], [r.action, ow2], [r.owner, ow3], [fmtDate(r.due), ow4]].forEach(function (pair) {
-        doc.setFontSize(8.5); doc.setFont('Helvetica', 'normal'); doc.setTextColor(BLACK); doc.text(pair[0] || '', dx + 2, ry, { maxWidth: pair[1] - 4 });
-        dx += pair[1];
-      });
-      if (ri < validOpen.length - 1) rowLine(ry + 5);
-      ry += 15;
+      doc.setFontSize(8.5); doc.setFont('Helvetica', 'normal'); doc.setTextColor(BLACK);
+      doc.text(w.itemLines, dx + 2, ry, { lineHeightFactor: openLH / 8.5 }); dx += ow1;
+      doc.text(w.actionLines, dx + 2, ry, { lineHeightFactor: openLH / 8.5 }); dx += ow2;
+      doc.text(r.owner || '', dx + 2, ry, { maxWidth: ow3 - 4 }); dx += ow3;
+      doc.text(fmtDate(r.due) || '', dx + 2, ry, { maxWidth: ow4 - 4 });
+      if (ri < validOpen.length - 1) rowLine(ry + w.h - openBase + 5);
+      ry += w.h;
     });
     y += oh + 7;
   }
@@ -963,16 +1013,24 @@ async function savePDF() {
     y += nmh + 7;
   } else {
     var validDec = decRows.filter(function (r) { return r.decision; });
-    var dw1 = cw - 18 - 105 - 110, dh = (validDec.length || 1) * 14 + 18; rr(mg, y, cw, dh, 5, WHITE, BORDER);
+    var dw1 = cw - 18 - 105 - 110, decLH = 12, decBase = 14;
+    doc.setFontSize(9); doc.setFont('Helvetica', 'normal');
+    var decWrap = validDec.map(function (r) {
+      var decisionLines = doc.splitTextToSize(r.decision || '', dw1 - 6);
+      return { decisionLines: decisionLines, h: decBase + (decisionLines.length - 1) * decLH };
+    });
+    var dh = (decWrap.reduce(function (s, w) { return s + w.h; }, 0) || decBase) + 18;
+    rr(mg, y, cw, dh, 5, WHITE, BORDER);
     colHdr(['Decision Needed', 'Owner', 'Due Date'], [dw1, 105, 110], mg + 4, y + 2);
     var ry = y + 18 + 10;
     validDec.forEach(function (r, ri) {
+      var w = decWrap[ri];
       doc.setFillColor(RED); doc.circle(mg + 9, ry - 3, 2.5, 'F');
-      doc.setFontSize(9); doc.setFont('Helvetica', 'normal'); doc.setTextColor(BLACK); doc.text(r.decision || '', mg + 17, ry, { maxWidth: dw1 - 6 });
+      doc.setFontSize(9); doc.setFont('Helvetica', 'normal'); doc.setTextColor(BLACK); doc.text(w.decisionLines, mg + 17, ry, { lineHeightFactor: decLH / 9 });
       doc.setTextColor('#666'); doc.text(r.owner || '', mg + 17 + dw1, ry, { maxWidth: 100 });
       doc.text(fmtDate(r.due) || '', mg + 17 + dw1 + 105, ry);
-      if (ri < validDec.length - 1) rowLine(ry + 4);
-      ry += 14;
+      if (ri < validDec.length - 1) rowLine(ry + w.h - decBase + 4);
+      ry += w.h;
     });
     y += dh + 7;
   }
@@ -999,7 +1057,10 @@ async function savePDF() {
 // value-setting (carry-forward, loading a past update) doesn't fire these
 // DOM events, so it never triggers a spurious save.
 var pageEl = document.getElementById('page');
-pageEl.addEventListener('input', function () { scheduleAutosave(); });
+pageEl.addEventListener('input', function (e) {
+  if (e.target.tagName === 'TEXTAREA') autoGrow(e.target);
+  scheduleAutosave();
+});
 pageEl.addEventListener('change', function () { scheduleAutosave(); });
 
 // Warn before closing/navigating away with an unsaved autosave pending.
