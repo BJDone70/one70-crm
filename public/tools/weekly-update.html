@@ -18,12 +18,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;ba
 .proj-select{flex:1;height:34px;padding:0 10px;border:1px solid #DDD9D0;border-radius:6px;font-size:13px;font-family:inherit;background:#fff;color:#1A1A1A;box-sizing:border-box}
 .icon-btn{width:34px;height:34px;flex-shrink:0;border:1px solid #DDD9D0;background:#F7F6F2;border-radius:6px;cursor:pointer;font-size:16px;color:#555;display:flex;align-items:center;justify-content:center;transition:all .15s;box-sizing:border-box}
 .icon-btn:hover{border-color:#F5C518;color:#1A1A1A}
-.new-proj-row{display:none;gap:6px;margin-top:8px}
+.new-proj-row{display:none;flex-direction:column;gap:6px;margin-top:8px}
 .new-proj-row.show{display:flex}
-.new-proj-row input{flex:1;padding:7px 9px;border:1px solid #DDD9D0;border-radius:6px;font-size:12px;font-family:inherit}
-.new-proj-row input#newProjStartNum{flex:0 0 54px;text-align:center;padding:7px 4px}
-.new-proj-row button{padding:7px 12px;border:none;border-radius:6px;background:#1A1A1A;color:#F5C518;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
-.new-proj-hint{display:none;font-size:10px;color:#999;line-height:1.4;margin-top:4px}
+.new-proj-card{background:#F7F6F2;border-radius:6px;padding:7px 10px;flex:1}
+.new-proj-card label{display:block;font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.new-proj-card input{width:100%;border:none;background:transparent;outline:none;font-size:13px;font-weight:500;color:#1A1A1A;font-family:inherit;padding:0}
+.new-proj-card input::placeholder{color:#ccc;font-weight:400}
+.new-proj-bottom{display:flex;gap:6px;align-items:stretch}
+.new-proj-card.narrow{flex:0 0 88px}
+.new-proj-bottom button{padding:0 16px;border:none;border-radius:6px;background:#1A1A1A;color:#F5C518;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.new-proj-hint{display:none;font-size:10px;color:#999;line-height:1.4;margin-top:2px}
 .new-proj-hint.show{display:block}
 .sidebar-divider{height:1px;background:#EDEAE3;margin:14px 0}
 .new-update-btn{width:100%;background:#F5C518;border:none;border-radius:7px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:#1A1A1A;margin-bottom:12px;transition:background .15s}
@@ -166,11 +170,19 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer
       <button class="icon-btn" id="addProjectBtn" title="Add project">+</button>
     </div>
     <div class="new-proj-row" id="newProjRow">
-      <input type="text" id="newProjName" placeholder="New project name…">
-      <input type="number" id="newProjStartNum" min="1" value="1" title="First update number for this project">
-      <button id="createProjectBtn">Add</button>
+      <div class="new-proj-card">
+        <label>Project name</label>
+        <input type="text" id="newProjName" placeholder="e.g. 7 New Lake Road">
+      </div>
+      <div class="new-proj-bottom">
+        <div class="new-proj-card narrow">
+          <label>Start #</label>
+          <input type="number" id="newProjStartNum" min="1" value="1">
+        </div>
+        <button id="createProjectBtn">Add</button>
+      </div>
     </div>
-    <div class="new-proj-hint" id="newProjHint">Starting update #: leave at 1 for a brand-new project, or enter the next number if it's already partway through its update cycle.</div>
+    <div class="new-proj-hint" id="newProjHint">Use 1 for a brand-new project, or its current update number if it's already partway through its cycle.</div>
 
     <div class="sidebar-divider"></div>
 
