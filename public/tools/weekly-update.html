@@ -21,7 +21,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;ba
 .new-proj-row{display:none;gap:6px;margin-top:8px}
 .new-proj-row.show{display:flex}
 .new-proj-row input{flex:1;padding:7px 9px;border:1px solid #DDD9D0;border-radius:6px;font-size:12px;font-family:inherit}
+.new-proj-row input#newProjStartNum{flex:0 0 54px;text-align:center;padding:7px 4px}
 .new-proj-row button{padding:7px 12px;border:none;border-radius:6px;background:#1A1A1A;color:#F5C518;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.new-proj-hint{display:none;font-size:10px;color:#999;line-height:1.4;margin-top:4px}
+.new-proj-hint.show{display:block}
 .sidebar-divider{height:1px;background:#EDEAE3;margin:14px 0}
 .new-update-btn{width:100%;background:#F5C518;border:none;border-radius:7px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:#1A1A1A;margin-bottom:12px;transition:background .15s}
 .new-update-btn:hover{background:#d9ab10}
@@ -164,8 +167,10 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer
     </div>
     <div class="new-proj-row" id="newProjRow">
       <input type="text" id="newProjName" placeholder="New project name…">
+      <input type="number" id="newProjStartNum" min="1" value="1" title="First update number for this project">
       <button id="createProjectBtn">Add</button>
     </div>
+    <div class="new-proj-hint" id="newProjHint">Starting update #: leave at 1 for a brand-new project, or enter the next number if it's already partway through its update cycle.</div>
 
     <div class="sidebar-divider"></div>
 
@@ -418,7 +423,7 @@ function showToast(msg, isErr) {
 async function loadProjects() {
   try {
     setSync('saving', 'Loading projects…');
-    projectsCache = await sbGet('/wu_projects?active=eq.true&select=id,name&order=name.asc');
+    projectsCache = await sbGet('/wu_projects?active=eq.true&select=id,name,starting_update_number&order=name.asc');
     const sel = document.getElementById('projectSelect');
     sel.innerHTML = '<option value="">Select a project…</option>' +
       projectsCache.map(function (p) { return '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>'; }).join('');
@@ -437,18 +442,24 @@ function escapeHtml(s) {
 
 document.getElementById('addProjectBtn').addEventListener('click', function () {
   document.getElementById('newProjRow').classList.toggle('show');
+  document.getElementById('newProjHint').classList.toggle('show');
   document.getElementById('newProjName').focus();
 });
 
 document.getElementById('createProjectBtn').addEventListener('click', async function () {
   const nameInput = document.getElementById('newProjName');
+  const startInput = document.getElementById('newProjStartNum');
   const name = nameInput.value.trim();
   if (!name) return;
+  var startNum = parseInt(startInput.value, 10);
+  if (!startNum || startNum < 1) startNum = 1;
   try {
     setSync('saving', 'Adding project…');
-    const created = await sbPost('wu_projects', { name: name }, true);
+    const created = await sbPost('wu_projects', { name: name, starting_update_number: startNum }, true);
     nameInput.value = '';
+    startInput.value = '1';
     document.getElementById('newProjRow').classList.remove('show');
+    document.getElementById('newProjHint').classList.remove('show');
     await loadProjects();
     document.getElementById('projectSelect').value = created[0].id;
     await selectProject(created[0].id);
@@ -526,8 +537,13 @@ function startNewUpdate() {
   clearTimeout(autosaveTimer);
   autosaveTimer = null;
   currentUpdateId = null;
-  currentUpdateNum = (historyCache[0] ? historyCache[0].update_number : 0) + 1;
   viewingReadOnly = false;
+
+  const proj = projectsCache.find(function (p) { return p.id === currentProjectId; });
+  // A project's very first update starts at whatever number was chosen when
+  // it was added (for projects already partway through their cycle before
+  // this tool existed); every update after that just increments as usual.
+  currentUpdateNum = historyCache[0] ? historyCache[0].update_number + 1 : (proj ? proj.starting_update_number : 1);
 
   clearForm();
   document.getElementById('updateNumDisplay').textContent = currentUpdateNum;
@@ -537,7 +553,6 @@ function startNewUpdate() {
   document.getElementById('readonlyBanner').classList.remove('show');
   document.getElementById('saveBtn').disabled = false;
 
-  const proj = projectsCache.find(function (p) { return p.id === currentProjectId; });
   document.getElementById('f_project').value = proj ? proj.name : '';
   document.getElementById('f_date').value = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }).replace(/\//g, '.');
 
@@ -685,7 +700,10 @@ async function performSave(opts) {
       await sbPatch('wu_updates', 'id=eq.' + currentUpdateId, payload);
       if (!silent) showToast('Update #' + currentUpdateNum + ' saved');
     } else {
-      // update_number is assigned server-side by trigger
+      // update_number is normally assigned server-side by the trigger, but a
+      // project's first-ever update explicitly sets it to the chosen
+      // starting number (the trigger only auto-assigns when it's NULL).
+      if (!historyCache.length) payload.update_number = currentUpdateNum;
       const created = await sbPost('wu_updates', payload, true);
       currentUpdateId = created[0].id;
       currentUpdateNum = created[0].update_number;
