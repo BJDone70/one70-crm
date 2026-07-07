@@ -51,7 +51,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;ba
 .page{background:#fff;border-radius:10px;border:1px solid #DDD9D0;overflow:hidden}
 .page.disabled{opacity:.45;pointer-events:none}
 
-.header{background:#1A1A1A;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.header{background:#1A1A1A;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:10px;margin-bottom:20px}
 .header-logo{height:50px;width:auto;display:block;flex-shrink:0}
 .header-center{text-align:center;flex:1}
 .doc-title{color:#fff;font-size:16px;font-weight:700;letter-spacing:.06em}
@@ -198,6 +198,15 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer
   <!-- ============ MAIN: form or empty state ============ -->
   <div id="mainArea">
 
+  <div class="header">
+    <img class="header-logo" src="/logo-300.jpg" alt="ONE70 Group">
+    <div class="header-center"><div class="doc-title">WEEKLY PROJECT UPDATE</div></div>
+    <div class="header-right">
+      <span class="upd-lbl">UPDATE #</span>
+      <span class="upd-value" id="updateNumDisplay">—</span>
+    </div>
+  </div>
+
   <div class="empty-state" id="emptyState">
     <h2>No project selected</h2>
     <p>Choose a project on the left, or add a new one, to get started.</p>
@@ -206,15 +215,6 @@ input[type="date"]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer
   <div class="page" id="page" style="display:none">
 
     <div class="readonly-banner" id="readonlyBanner">Viewing a past update — read only. Start a new update to make changes.</div>
-
-    <div class="header">
-      <img class="header-logo" src="/logo-300.jpg" alt="ONE70 Group">
-      <div class="header-center"><div class="doc-title">WEEKLY PROJECT UPDATE</div></div>
-      <div class="header-right">
-        <span class="upd-lbl">UPDATE #</span>
-        <span class="upd-value" id="updateNumDisplay">—</span>
-      </div>
-    </div>
 
     <div class="body">
 
